@@ -88,7 +88,7 @@ func (Driver) GetFile(string, int64) (int64, io.ReadCloser, error) {
 // returns - the number of bytes written and the first error encountered while writing, if any.
 func (Driver) PutFile(filename string, rd io.Reader, appendData bool) (int64, error) {
 	ext := filepath.Ext(filename)
-	filename = time.Now().Format("20060102-150405.") + ext
+	filename = time.Now().Format("20060102-150405") + ext
 
 	f, err := os.Create(filepath.Join(opts.TargetDir, filename))
 	if err != nil {
