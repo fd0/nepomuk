@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/coreos/go-systemd/activation"
 	"github.com/spf13/pflag"
 	"goftp.io/server/core"
 )
@@ -122,6 +124,8 @@ func (AllowAll) CheckPasswd(string, string) (bool, error) {
 }
 
 func main() {
+	log.SetFlags(0)
+
 	fs := pflag.NewFlagSet("scann0r", pflag.ContinueOnError)
 	fs.StringVar(&opts.TargetDir, "target-dir", "/tmp", "store uploaded files in `dir`")
 	fs.StringVar(&opts.Listen, "listen", ":2121", "listen on `addr` when started directly (without systemd socket activation)")
@@ -141,13 +145,33 @@ func main() {
 		Factory: Factory{},
 	})
 
-	listener, err := net.Listen("tcp", opts.Listen)
+	var listener net.Listener
+
+	// try systemd socket activation
+	listeners, err := activation.Listeners()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "listen: %v\n", err)
+		fmt.Fprintf(os.Stderr, "get listeners from systemd: %v\n", err)
+	}
+
+	if len(listeners) > 1 {
+		fmt.Fprintf(os.Stderr, "more than one listener passed by systemd, ignoring all but the first")
+	}
+
+	if len(listeners) > 0 {
+		log.Printf("using listener passed by systemd\n")
+		listener = listeners[0]
+	}
+
+	if listener == nil {
+		log.Printf("listen on %v\n", opts.Listen)
+		listener, err = net.Listen("tcp", opts.Listen)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "listen: %v\n", err)
+		}
 	}
 
 	err = srv.Serve(listener)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "serve: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Serve: %v\n", err)
 	}
 }
