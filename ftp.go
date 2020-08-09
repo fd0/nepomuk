@@ -78,13 +78,13 @@ func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 			processed, err := PostProcess(combined)
 			if err != nil {
 				log.Printf("post-processing %v failed: %v", combined, err)
-			}
+			} else {
+				log.Printf("successfully ran post-process on %v", combined)
 
-			log.Printf("successfully ran post-process on %v", combined)
-
-			err = os.Rename(processed, combined)
-			if err != nil {
-				log.Printf("renaming %v failed: %v", combined, err)
+				err = os.Rename(processed, combined)
+				if err != nil {
+					log.Printf("renaming %v failed: %v", combined, err)
+				}
 			}
 		}()
 	}

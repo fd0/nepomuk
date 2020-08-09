@@ -26,19 +26,19 @@ var ErrNoLastFileFound = errors.New("no last file found")
 func readdirnames(dir string) ([]string, error) {
 	f, err := os.Open(dir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open %v: %w", dir, err)
 	}
 
 	names, err := f.Readdirnames(-1)
 	if err != nil {
 		_ = f.Close()
 
-		return nil, err
+		return nil, fmt.Errorf("readdir %v: %w", dir, err)
 	}
 
 	err = f.Close()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("close %v: %w", dir, err)
 	}
 
 	return names, nil
@@ -47,7 +47,7 @@ func readdirnames(dir string) ([]string, error) {
 func FindLastFilename(dir, currentFilename string) (string, error) {
 	names, err := readdirnames(dir)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("readdirnames: %w", err)
 	}
 
 	matches := make([]string, 0, len(names))
@@ -93,7 +93,7 @@ func SaveFile(targetdir, path string, rd io.Reader) (filename string, n int64, e
 
 	f, err := os.Create(filepath.Join(targetdir, name))
 	if err != nil {
-		return "", 0, err
+		return "", 0, fmt.Errorf("create: %w", err)
 	}
 
 	n, err = io.Copy(f, rd)
@@ -101,12 +101,12 @@ func SaveFile(targetdir, path string, rd io.Reader) (filename string, n int64, e
 		_ = f.Close()
 		_ = os.Remove(f.Name())
 
-		return "", n, err
+		return "", n, fmt.Errorf("copy: %w", err)
 	}
 
 	err = f.Close()
 	if err != nil {
-		return "", n, err
+		return "", n, fmt.Errorf("close: %w", err)
 	}
 
 	if suffix != "" {
@@ -132,7 +132,7 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 
 	tempdir, err = ioutil.TempDir("", "join-duplex-")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("tempdir: %w", err)
 	}
 
 	defer func() {
@@ -241,7 +241,7 @@ func PostProcess(filename string) (string, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("run ocrmypdf: %w", err)
 	}
 
 	return dest, nil
