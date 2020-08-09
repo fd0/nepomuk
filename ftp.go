@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"goftp.io/server/core"
@@ -66,24 +67,34 @@ func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 		return n, err
 	}
 
-	if strings.HasSuffix(filename, "_duplex-even.pdf") {
+	if !strings.HasSuffix(filename, "_duplex-odd.pdf") {
 		go func() {
-			combined, err := TryJoinPages(d.targetdir, filename)
-			if err != nil {
-				log.Printf("de-duplex pages: %v", err)
+
+			var (
+				sourcefile string
+				err        error
+			)
+
+			if strings.HasSuffix(filename, "_duplex-even.pdf") {
+				sourcefile, err = TryJoinPages(d.targetdir, filename)
+				if err != nil {
+					log.Printf("de-duplex pages: %v", err)
+				}
+			} else {
+				sourcefile = filepath.Join(d.targetdir, filename)
 			}
 
-			log.Printf("running post-process for %v in the background", combined)
+			log.Printf("running post-process for %v in the background", sourcefile)
 
-			processed, err := PostProcess(combined)
+			processed, err := PostProcess(sourcefile)
 			if err != nil {
-				log.Printf("post-processing %v failed: %v", combined, err)
+				log.Printf("post-processing %v failed: %v", sourcefile, err)
 			} else {
-				log.Printf("successfully ran post-process on %v", combined)
+				log.Printf("successfully ran post-process on %v", sourcefile)
 
-				err = os.Rename(processed, combined)
+				err = os.Rename(processed, sourcefile)
 				if err != nil {
-					log.Printf("renaming %v failed: %v", combined, err)
+					log.Printf("renaming %v failed: %v", sourcefile, err)
 				}
 			}
 		}()

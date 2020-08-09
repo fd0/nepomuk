@@ -109,21 +109,6 @@ func SaveFile(targetdir, path string, rd io.Reader) (filename string, n int64, e
 		return "", n, fmt.Errorf("close: %w", err)
 	}
 
-	if suffix != "" {
-		// do not touch duplex files, they will be processed later
-		return name, n, nil
-	}
-
-	processed, err := PostProcess(filepath.Join(targetdir, name))
-	if err != nil {
-		log.Printf("postprocessing %v failed: %v", name, err)
-	}
-
-	err = os.Rename(processed, filepath.Join(targetdir, name))
-	if err != nil {
-		log.Printf("renaming %v failed: %v", processed, err)
-	}
-
 	return name, n, nil
 }
 

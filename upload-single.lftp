@@ -1,0 +1,2 @@
+open ftp://localhost:2121
+put testdata/20200809-135900.pdf -o farbscan-1234.pdf
