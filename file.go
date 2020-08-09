@@ -119,7 +119,7 @@ func SaveFile(targetdir, path string, rd io.Reader) (filename string, n int64, e
 		log.Printf("postprocessing %v failed: %v", name, err)
 	}
 
-	err = os.Rename(filepath.Join(targetdir, processed), filepath.Join(targetdir, name))
+	err = os.Rename(processed, filepath.Join(targetdir, name))
 	if err != nil {
 		log.Printf("renaming %v failed: %v", processed, err)
 	}
