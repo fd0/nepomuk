@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -108,6 +109,21 @@ func SaveFile(targetdir, path string, rd io.Reader) (filename string, n int64, e
 		return "", n, err
 	}
 
+	if suffix != "" {
+		// do not touch duplex files, they will be processed later
+		return name, n, nil
+	}
+
+	processed, err := PostProcess(filepath.Join(targetdir, name))
+	if err != nil {
+		log.Printf("postprocessing %v failed: %v", name, err)
+	}
+
+	err = os.Rename(filepath.Join(targetdir, processed), filepath.Join(targetdir, name))
+	if err != nil {
+		log.Printf("renaming %v failed: %v", processed, err)
+	}
+
 	return name, n, nil
 }
 
@@ -170,9 +186,9 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 		}
 	}
 
-	targetfile := strings.Split(even, "_")[0] + ".pdf"
+	targetfile := filepath.Join(dir, strings.Split(even, "_")[0]+".pdf")
 
-	err = pdfcpu.MergeCreateFile(files, filepath.Join(dir, targetfile), nil)
+	err = pdfcpu.MergeCreateFile(files, targetfile, nil)
 	if err != nil {
 		return "", fmt.Errorf("merge file: %w", err)
 	}
@@ -190,28 +206,43 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 	return targetfile, nil
 }
 
-func TryJoinPages(targetdir, filename string) {
+func TryJoinPages(targetdir, filename string) (string, error) {
 	lastfile, err := FindLastFilename(targetdir, filename)
 	if err != nil {
-		log.Printf("error finding last file in %v: %v", targetdir, err)
-
-		return
+		return "", fmt.Errorf("find last file in %v: %w", targetdir, err)
 	}
 
 	log.Printf("trying to join pages, filename %v, last %v", filename, lastfile)
 
 	if !strings.HasSuffix(lastfile, "_duplex-odd.pdf") {
-		log.Printf("odd pages not found")
-
-		return
+		return "", fmt.Errorf("odd pages for %v not found", filename)
 	}
 
 	combined, err := JoinPages(targetdir, lastfile, filename)
 	if err != nil {
-		log.Printf("joining pages for %v and %v failed: %v", lastfile, filename, err)
-
-		return
+		return "", fmt.Errorf("joining pages for %v and %v failed: %W", lastfile, filename, err)
 	}
 
-	log.Printf("successfully joined %v and %v into %v", lastfile, filename, combined)
+	return combined, nil
+}
+
+func PostProcess(filename string) (string, error) {
+	ext := filepath.Ext(filename)
+	base := strings.TrimSuffix(filename, ext)
+	sidecar := base + ".txt"
+	dest := base + "_processed" + ext
+
+	cmd := exec.Command(
+		"ocrmypdf", "--quiet",
+		"--deskew", "--clean", "--clean-final",
+		"-l", "deu",
+		"--sidecar", sidecar, filename, dest)
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+
+	return dest, nil
 }

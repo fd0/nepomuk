@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -66,7 +67,26 @@ func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 	}
 
 	if strings.HasSuffix(filename, "_duplex-even.pdf") {
-		TryJoinPages(d.targetdir, filename)
+		go func() {
+			combined, err := TryJoinPages(d.targetdir, filename)
+			if err != nil {
+				log.Printf("de-duplex pages: %v", err)
+			}
+
+			log.Printf("running post-process for %v in the background", combined)
+
+			processed, err := PostProcess(combined)
+			if err != nil {
+				log.Printf("post-processing %v failed: %v", combined, err)
+			}
+
+			log.Printf("successfully ran post-process on %v", combined)
+
+			err = os.Rename(processed, combined)
+			if err != nil {
+				log.Printf("renaming %v failed: %v", combined, err)
+			}
+		}()
 	}
 
 	return n, err
