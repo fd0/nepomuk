@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strings"
 
 	"goftp.io/server/core"
 )
@@ -58,8 +59,17 @@ func (Driver) GetFile(string, int64) (int64, io.ReadCloser, error) {
 	return 0, nil, errors.New("not implemented")
 }
 
-func (d Driver) PutFile(filename string, rd io.Reader, appendData bool) (int64, error) {
-	return SaveFile(d.targetdir, filename, rd)
+func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, error) {
+	filename, n, err := SaveFile(d.targetdir, path, rd)
+	if err != nil {
+		return n, err
+	}
+
+	if strings.HasSuffix(filename, "_duplex-even.pdf") {
+		TryJoinPages(d.targetdir, filename)
+	}
+
+	return n, err
 }
 
 // Factory implements a factory for creating an FTP file system using Driver.
