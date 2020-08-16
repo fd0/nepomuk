@@ -26,6 +26,7 @@ func (fileinfo) Group() string {
 // Driver implements an FTP file system.
 type Driver struct {
 	targetdir string
+	copydir   string
 }
 
 func (Driver) Stat(filename string) (core.FileInfo, error) {
@@ -97,6 +98,16 @@ func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 					log.Printf("renaming %v failed: %v", sourcefile, err)
 				}
 			}
+
+			// store copy for consumption by paperless
+			if d.copydir != "" {
+				err = copyFile(sourcefile, d.copydir)
+				if err != nil {
+					log.Printf("error storing copy in paperless incoming dir %v: %v", d.copydir, err)
+				} else {
+					log.Printf("stored copy in paperless incoming dir")
+				}
+			}
 		}()
 	}
 
@@ -106,10 +117,11 @@ func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 // Factory implements a factory for creating an FTP file system using Driver.
 type Factory struct {
 	targetdir string
+	copydir   string
 }
 
 func (f Factory) NewDriver() (core.Driver, error) {
-	return Driver{targetdir: f.targetdir}, nil // nolint:gosimple
+	return Driver{targetdir: f.targetdir, copydir: f.copydir}, nil // nolint:gosimple
 }
 
 type AllowAll struct{}

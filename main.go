@@ -12,8 +12,9 @@ import (
 )
 
 var opts = struct {
-	TargetDir string
-	Listen    string
+	TargetDir            string
+	PaperlessIncomingDir string
+	Listen               string
 }{}
 
 // CheckTargetDir ensures that dir exists and is a directory.
@@ -46,6 +47,8 @@ func main() {
 
 	fs := pflag.NewFlagSet("scann0r", pflag.ContinueOnError)
 	fs.StringVar(&opts.TargetDir, "target-dir", "data", "store uploaded files in `dir`")
+	fs.StringVar(&opts.PaperlessIncomingDir, "paperless-incoming-dir", "",
+		"store a copy of the PDF in `dir` for processing by paperless")
 	fs.StringVar(&opts.Listen, "listen", ":2121",
 		"listen on `addr` when started directly (without systemd socket activation)")
 
@@ -64,9 +67,19 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if opts.PaperlessIncomingDir != "" {
+		err = CheckTargetDir(opts.PaperlessIncomingDir)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	srv := core.NewServer(&core.ServerOpts{
-		Auth:    AllowAll{},
-		Factory: Factory{targetdir: opts.TargetDir},
+		Auth: AllowAll{},
+		Factory: Factory{
+			targetdir: opts.TargetDir,
+			copydir:   opts.PaperlessIncomingDir,
+		},
 	})
 
 	var listener net.Listener
