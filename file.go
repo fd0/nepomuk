@@ -112,6 +112,30 @@ func SaveFile(targetdir, path string, rd io.Reader) (filename string, n int64, e
 	return name, n, nil
 }
 
+// Files is used to sort a list of files in naming order (so foo1.pdf is
+// followed by foo2.pdf, not foo10.pdf).
+type Files []string
+
+func (f Files) Len() int {
+	return len(f)
+}
+
+func (f Files) Less(i, j int) bool {
+	if len(f[i]) < len(f[j]) {
+		return true
+	}
+
+	if len(f[i]) > len(f[j]) {
+		return false
+	}
+
+	return f[i] < f[j]
+}
+
+func (f Files) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
 func JoinPages(dir, odd, even string) (filename string, err error) {
 	var tempdir string
 
@@ -153,14 +177,14 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 		return "", fmt.Errorf("split file: %w", err)
 	}
 
-	sort.Strings(oddFiles)
+	sort.Sort(Files(oddFiles))
 
 	evenFiles, err := readdirnames(evenDir)
 	if err != nil {
 		return "", fmt.Errorf("read dir %v: %w", oddDir, err)
 	}
 
-	sort.Sort(sort.Reverse(sort.StringSlice(evenFiles)))
+	sort.Sort(sort.Reverse(Files(evenFiles)))
 
 	var files []string
 	for i := 0; i < len(oddFiles); i++ {
