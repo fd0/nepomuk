@@ -232,39 +232,37 @@ func PostProcess(filename string) (string, error) {
 	return dest, nil
 }
 
-func copyFile(sourcefile, targetdir string) error {
-	targetfile := filepath.Join(targetdir, filepath.Base(sourcefile))
-
+func copyFile(sourcefile, destfile string) error {
 	src, err := os.Open(sourcefile)
 	if err != nil {
 		return fmt.Errorf("open %v: %w", sourcefile, err)
 	}
 
-	dst, err := os.OpenFile(targetfile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	dst, err := os.OpenFile(destfile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
 	if err != nil {
 		_ = src.Close()
-		return fmt.Errorf("create %v: %w", targetfile, err)
+		return fmt.Errorf("create %v: %w", destfile, err)
 	}
 
 	_, err = io.Copy(dst, src)
 	if err != nil {
 		_ = src.Close()
 		_ = dst.Close()
-		_ = os.Remove(targetfile)
-		return fmt.Errorf("copy %v -> %v: %w", sourcefile, targetfile, err)
+		_ = os.Remove(destfile)
+		return fmt.Errorf("copy %v -> %v: %w", sourcefile, destfile, err)
 	}
 
 	err = src.Close()
 	if err != nil {
 		_ = dst.Close()
-		_ = os.Remove(targetfile)
+		_ = os.Remove(destfile)
 		return fmt.Errorf("close %v: %w", sourcefile, err)
 	}
 
 	err = dst.Close()
 	if err != nil {
-		_ = os.Remove(targetfile)
-		return fmt.Errorf("close %v: %w", targetfile, err)
+		_ = os.Remove(destfile)
+		return fmt.Errorf("close %v: %w", destfile, err)
 	}
 
 	return nil

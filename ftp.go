@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"goftp.io/server/core"
 )
@@ -101,11 +102,13 @@ func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 
 			// store copy for consumption by paperless
 			if d.copydir != "" {
-				err = copyFile(sourcefile, d.copydir)
+				filename := time.Now().UTC().Format("20060102150405Z") + ".pdf"
+
+				err = copyFile(sourcefile, filepath.Join(d.copydir, filename))
 				if err != nil {
 					log.Printf("error storing copy in paperless incoming dir %v: %v", d.copydir, err)
 				} else {
-					log.Printf("stored copy in paperless incoming dir")
+					log.Printf("stored copy as %v in paperless incoming dir", filename)
 				}
 			}
 		}()
