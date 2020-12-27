@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func CheckTargetDir(dir string) error {
@@ -43,7 +44,7 @@ func processFile(filename string) error {
 		log.Printf("error processing %v: %v", filename, err)
 	}
 
-	date, err := ExtractDate(data)
+	date, err := ExtractDate(filepath.Base(filename), data)
 	if err != nil {
 		log.Printf("error extracting date: %v", err)
 	}
@@ -65,6 +66,12 @@ func processFiles(incoming, target string) error {
 	}
 
 	for _, entry := range entries {
+		fields := strings.Split(entry.Name(), ".")
+		if fields[len(fields)-1] != "pdf" {
+			log.Printf("skipping file with extension %q", fields)
+			continue
+		}
+
 		err := processFile(filepath.Join(incoming, entry.Name()))
 		if err != nil {
 			log.Printf("%v: error %v", entry.Name(), err)

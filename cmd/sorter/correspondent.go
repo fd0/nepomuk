@@ -14,8 +14,18 @@ var Correspondents = []Correspondent{
 	{Name: "ASEAG", Contains: []byte("aseag")},
 	{Name: "Hauselfen", Contains: []byte("hauselfen")},
 	{Name: "Deutsche Rentenversicherung", Contains: []byte("deutsche rentenversicherung")},
+
+	{Name: "Dialog Versicherung AG", Contains: []byte("dialog versicherung")}, // also contains "Finanzamt"
+	{Name: "GWUP", Contains: []byte("gwup")},                                  // also contains "Finanzamt"
+
 	{Name: "Finanzamt", Contains: []byte("finanzamt")},
+	{Name: "Finanzamt", Contains: []byte("finanzverwaltung")},
+
 	{Name: "Stadt Aachen", Contains: []byte("stadt aachen")},
+	{Name: "Peter Hissel GmbH", Contains: []byte("hissel")},
+	{Name: "Nordrheinische Ärzteversorgung", Contains: []byte("rzteversorgung")},
+	{Name: "Techniker Krankenkasse", Contains: []byte("techniker krankenkasse")},
+	{Name: "Uniklinik RWTH Aachen", Contains: []byte("uniklinik rwth aachen")},
 }
 
 func (c *Correspondent) Matches(data []byte) bool {
