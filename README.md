@@ -6,6 +6,6 @@ For testing, the script `upload.lftp` can be used to upload two PDF files with o
 
 In order for this to work, the file names must start with the strings `duplex-odd` and `duplex-even`, and the upload must happen in that order (first odd then even).
 
-After uploading and de-duplixing, the program `ocrmypdf` is run on the files.
+After uploading and de-duplexing, the program `ocrmypdf` is run on the files.
 
 The service can be run with systemd socket activation, sample unit files can be found in the `doc/` subdir.
