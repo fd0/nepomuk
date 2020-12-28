@@ -1,6 +1,0 @@
-[Socket]
-ListenStream = 21
-BindIPv6Only = both
-
-[Install]
-WantedBy = sockets.target

@@ -45,7 +45,7 @@ func CheckTargetDir(dir string) error {
 func main() {
 	log.SetFlags(0)
 
-	fs := pflag.NewFlagSet("scann0r", pflag.ContinueOnError)
+	fs := pflag.NewFlagSet("nepomuk-ingester", pflag.ContinueOnError)
 	fs.StringVar(&opts.TargetDir, "target-dir", "data", "store uploaded files in `dir`")
 	fs.StringVar(&opts.PaperlessIncomingDir, "paperless-incoming-dir", "",
 		"store a copy of the PDF in `dir` for processing by paperless")

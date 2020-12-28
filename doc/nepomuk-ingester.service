@@ -1,0 +1,6 @@
+[Unit]
+Description = Nepomuk FTP/directory ingester
+
+[Service]
+ExecStart = /usr/local/bin/nepomuk-ingester --target-dir /srv/data/scanner
+User = nepomuk

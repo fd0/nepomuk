@@ -1,7 +1,0 @@
-[Unit]
-Description = Scanner PDF FTP Server
-Requires = scann0r.socket
-
-[Service]
-ExecStart = /usr/local/bin/scann0r --target-dir /srv/data/scanner
-User = scann0r

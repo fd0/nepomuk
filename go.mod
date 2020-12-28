@@ -1,4 +1,4 @@
-module github.com/fd0/scann0r
+module github.com/fd0/nepomuk
 
 go 1.14
 
