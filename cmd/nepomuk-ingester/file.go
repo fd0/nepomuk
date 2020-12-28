@@ -89,8 +89,6 @@ func SaveFile(targetdir, path string, rd io.Reader) (filename string, n int64, e
 
 	name := time.Now().Format(filenameFormat) + suffix + ext
 
-	log.Printf("upload new file named %v as %v", path, name)
-
 	f, err := os.Create(filepath.Join(targetdir, name))
 	if err != nil {
 		return "", 0, fmt.Errorf("create: %w", err)

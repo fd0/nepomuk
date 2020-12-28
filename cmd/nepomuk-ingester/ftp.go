@@ -3,11 +3,7 @@ package main
 import (
 	"errors"
 	"io"
-	"log"
 	"os"
-	"path/filepath"
-	"strings"
-	"time"
 
 	"goftp.io/server/core"
 )
@@ -26,8 +22,8 @@ func (fileinfo) Group() string {
 
 // Driver implements an FTP file system.
 type Driver struct {
-	targetdir string
-	copydir   string
+	targetdir    string
+	OnFileUpload func(filename string)
 }
 
 func (Driver) Stat(filename string) (core.FileInfo, error) {
@@ -69,62 +65,19 @@ func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 		return n, err
 	}
 
-	if !strings.HasSuffix(filename, "_duplex-odd.pdf") {
-		go func() {
-
-			var (
-				sourcefile string
-				err        error
-			)
-
-			if strings.HasSuffix(filename, "_duplex-even.pdf") {
-				sourcefile, err = TryJoinPages(d.targetdir, filename)
-				if err != nil {
-					log.Printf("de-duplex pages: %v", err)
-				}
-			} else {
-				sourcefile = filepath.Join(d.targetdir, filename)
-			}
-
-			log.Printf("running post-process for %v in the background", sourcefile)
-
-			processed, err := PostProcess(sourcefile)
-			if err != nil {
-				log.Printf("post-processing %v failed: %v", sourcefile, err)
-			} else {
-				log.Printf("successfully ran post-process on %v", sourcefile)
-
-				err = os.Rename(processed, sourcefile)
-				if err != nil {
-					log.Printf("renaming %v failed: %v", sourcefile, err)
-				}
-			}
-
-			// store copy for consumption by paperless
-			if d.copydir != "" {
-				filename := time.Now().UTC().Format("20060102150405Z") + ".pdf"
-
-				err = copyFile(sourcefile, filepath.Join(d.copydir, filename))
-				if err != nil {
-					log.Printf("error storing copy in paperless incoming dir %v: %v", d.copydir, err)
-				} else {
-					log.Printf("stored copy as %v in paperless incoming dir", filename)
-				}
-			}
-		}()
-	}
+	d.OnFileUpload(filename)
 
 	return n, err
 }
 
 // Factory implements a factory for creating an FTP file system using Driver.
 type Factory struct {
-	targetdir string
-	copydir   string
+	targetdir    string
+	OnFileUpload func(filename string)
 }
 
 func (f Factory) NewDriver() (core.Driver, error) {
-	return Driver{targetdir: f.targetdir, copydir: f.copydir}, nil // nolint:gosimple
+	return Driver{targetdir: f.targetdir, OnFileUpload: f.OnFileUpload}, nil // nolint:gosimple
 }
 
 type AllowAll struct{}
