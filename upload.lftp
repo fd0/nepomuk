@@ -1,4 +1,0 @@
-open ftp://localhost:2121
-put testdata/20200809-135928_duplex-odd.pdf -o duplex-odd-1234.pdf
-sleep 1
-put testdata/20200809-135928_duplex-even.pdf -o duplex-even-1235.pdf
