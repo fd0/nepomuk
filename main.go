@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"time"
 
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
@@ -45,6 +43,30 @@ func CheckTargetDir(dir string) error {
 	return nil
 }
 
+// setupRootContext creates a root context that is cancelled when SIGINT is
+// received, tied to a new errgroup.Group. The returned cancel() function
+// cancels the outermost context.
+func setupRootContext() (wg *errgroup.Group, ctx context.Context, cancel func()) {
+	// create new root context, cancel on SIGINT
+	ctx, cancel = context.WithCancel(context.Background())
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+
+	go func() {
+		select {
+		case <-ch:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	// couple this context with an errgroup
+	wg, ctx = errgroup.WithContext(ctx)
+
+	return wg, ctx, cancel
+}
+
 func main() {
 	log.SetFlags(0)
 
@@ -75,37 +97,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// create new root context, cancel on SIGINT
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-
-	go func() {
-		select {
-		case <-ch:
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-
-	// couple this context with an errgroup
-	wg, ctx := errgroup.WithContext(ctx)
-
 	handler := func(filename string) {
 		fmt.Printf("uploaded file %v\n", filename)
 	}
 
-	wg.Go(func() error {
-		fmt.Printf("listen on %v\n", opts.Listen)
-		return RunFTPServer(ctx, incomingDir, opts.Verbose, opts.Listen, handler)
-	})
+	wg, ctx, cancel := setupRootContext()
+	defer cancel()
 
+	// start all processes
 	wg.Go(func() error {
-		time.Sleep(2 * time.Second)
-		fmt.Printf("BAM\n")
-		return errors.New("foo")
+		if opts.Verbose {
+			fmt.Printf("Start FTP server on %v\n", opts.Listen)
+		}
+		return RunFTPServer(ctx, incomingDir, opts.Verbose, opts.Listen, handler)
 	})
 
 	err = wg.Wait()
