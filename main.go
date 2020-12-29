@@ -91,14 +91,20 @@ func main() {
 	}
 
 	incomingDir := filepath.Join(opts.BaseDir, "incoming")
+	uploadedDir := filepath.Join(opts.BaseDir, "uploaded")
 
 	err = CheckTargetDir(incomingDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	err = CheckTargetDir(uploadedDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	handler := func(filename string) {
-		fmt.Printf("uploaded file %v\n", filename)
+		log.Printf("uploaded file %v\n", filename)
 	}
 
 	wg, ctx, cancel := setupRootContext()
@@ -107,9 +113,16 @@ func main() {
 	// start all processes
 	wg.Go(func() error {
 		if opts.Verbose {
-			fmt.Printf("Start FTP server on %v\n", opts.Listen)
+			log.Printf("Start FTP server on %v\n", opts.Listen)
 		}
-		return RunFTPServer(ctx, incomingDir, opts.Verbose, opts.Listen, handler)
+		return RunFTPServer(ctx, uploadedDir, opts.Verbose, opts.Listen, handler)
+	})
+
+	wg.Go(func() error {
+		if opts.Verbose {
+			log.Printf("Watch for new files in %v", incomingDir)
+		}
+		return RunWatcher(ctx, incomingDir, opts.Verbose, handler)
 	})
 
 	err = wg.Wait()
