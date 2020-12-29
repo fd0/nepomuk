@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
-	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/pflag"
-	"goftp.io/server/core"
+	"golang.org/x/sync/errgroup"
 )
 
 var opts = struct {
@@ -66,46 +69,48 @@ func main() {
 	}
 
 	incomingDir := filepath.Join(opts.BaseDir, "incoming")
-	uploadDir := filepath.Join(opts.BaseDir, "upload")
 
 	err = CheckTargetDir(incomingDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = CheckTargetDir(uploadDir)
+	// create new root context, cancel on SIGINT
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+
+	go func() {
+		select {
+		case <-ch:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	// couple this context with an errgroup
+	wg, ctx := errgroup.WithContext(ctx)
+
+	handler := func(filename string) {
+		fmt.Printf("uploaded file %v\n", filename)
+	}
+
+	wg.Go(func() error {
+		fmt.Printf("listen on %v\n", opts.Listen)
+		return RunFTPServer(ctx, incomingDir, opts.Verbose, opts.Listen, handler)
+	})
+
+	wg.Go(func() error {
+		time.Sleep(2 * time.Second)
+		fmt.Printf("BAM\n")
+		return errors.New("foo")
+	})
+
+	err = wg.Wait()
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	serverOpts := &core.ServerOpts{
-		WelcomeMessage: "Nepomuk Archive System",
-		Auth:           AllowAll{},
-		Factory: Factory{
-			targetdir: uploadDir,
-			OnFileUpload: func(filename string) {
-				log.Printf("uploaded new file as %v", filename)
-			},
-		},
-	}
-
-	if !opts.Verbose {
-		serverOpts.Logger = &core.DiscardLogger{}
-	}
-
-	srv := core.NewServer(serverOpts)
-
-	var listener net.Listener
-
-	log.Printf("listen on %v\n", opts.Listen)
-
-	listener, err = net.Listen("tcp", opts.Listen)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "listen: %v\n", err)
-	}
-
-	err = srv.Serve(listener)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Serve: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
 }

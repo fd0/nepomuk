@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"io"
+	"net"
 	"os"
 
 	"goftp.io/server/core"
@@ -84,4 +87,46 @@ type AllowAll struct{}
 
 func (AllowAll) CheckPasswd(string, string) (bool, error) {
 	return true, nil
+}
+
+func RunFTPServer(ctx context.Context, targetDir string, verbose bool, bindaddr string, onFileUpload func(filename string)) error {
+	serverOpts := &core.ServerOpts{
+		WelcomeMessage: "Nepomuk Archive System",
+		Auth:           AllowAll{},
+		Factory: Factory{
+			targetdir:    targetDir,
+			OnFileUpload: onFileUpload,
+		},
+	}
+
+	if !verbose {
+		serverOpts.Logger = &core.DiscardLogger{}
+	}
+
+	srv := core.NewServer(serverOpts)
+
+	var listener net.Listener
+
+	listener, err := net.Listen("tcp", bindaddr)
+	if err != nil {
+		return fmt.Errorf("listen: %w", err)
+	}
+
+	ch := make(chan error, 1)
+
+	go func() {
+		ch <- srv.Serve(listener)
+	}()
+
+	select {
+	case err := <-ch:
+		lerr := listener.Close()
+		if err == nil {
+			err = lerr
+		}
+		return err
+	case <-ctx.Done():
+		err := listener.Close()
+		return err
+	}
 }
