@@ -93,6 +93,7 @@ func main() {
 
 	incomingDir := filepath.Join(opts.BaseDir, "incoming")
 	uploadedDir := filepath.Join(opts.BaseDir, "uploaded")
+	dataDir := filepath.Join(opts.BaseDir, "data")
 
 	err = CheckTargetDir(incomingDir)
 	if err != nil {
@@ -124,14 +125,7 @@ func main() {
 	})
 
 	wg.Go(func() error {
-		for {
-			select {
-			case <-ctx.Done():
-				return nil
-			case filename := <-newFiles:
-				log.Printf("process new file %v", filename)
-			}
-		}
+		return RunProcess(ctx, newFiles, dataDir)
 	})
 
 	err = wg.Wait()

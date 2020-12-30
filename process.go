@@ -1,51 +1,66 @@
 package main
 
-func Process() error {
+import (
+	"context"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 
-	// if !strings.HasSuffix(filename, "_duplex-odd.pdf") {
-	// 	go func() {
+	"github.com/fd0/nepomuk/process"
+)
 
-	// 		var (
-	// 			sourcefile string
-	// 			err        error
-	// 		)
+func processFile(ctx context.Context, dataDir string, filename string) error {
+	log.Printf("process new file %v", filename)
 
-	// 		if strings.HasSuffix(filename, "_duplex-even.pdf") {
-	// 			sourcefile, err = TryJoinPages(d.targetdir, filename)
-	// 			if err != nil {
-	// 				log.Printf("de-duplex pages: %v", err)
-	// 			}
-	// 		} else {
-	// 			sourcefile = filepath.Join(d.targetdir, filename)
-	// 		}
+	if !strings.HasSuffix(filename, "_duplex-odd.pdf") {
+		go func() {
 
-	// 		log.Printf("running post-process for %v in the background", sourcefile)
+			var (
+				sourcefile string
+				err        error
+			)
 
-	// 		processed, err := PostProcess(sourcefile)
-	// 		if err != nil {
-	// 			log.Printf("post-processing %v failed: %v", sourcefile, err)
-	// 		} else {
-	// 			log.Printf("successfully ran post-process on %v", sourcefile)
+			if strings.HasSuffix(filename, "_duplex-even.pdf") {
+				sourcefile, err = process.TryJoinPages(dataDir, filename)
+				if err != nil {
+					log.Printf("de-duplex pages: %v", err)
+				}
+			} else {
+				sourcefile = filepath.Join(dataDir, filename)
+			}
 
-	// 			err = os.Rename(processed, sourcefile)
-	// 			if err != nil {
-	// 				log.Printf("renaming %v failed: %v", sourcefile, err)
-	// 			}
-	// 		}
+			log.Printf("running post-process for %v in the background", sourcefile)
 
-	// 		// store copy for consumption by paperless
-	// 		if d.copydir != "" {
-	// 			filename := time.Now().UTC().Format("20060102150405Z") + ".pdf"
+			processed, err := process.PostProcess(sourcefile)
+			if err != nil {
+				log.Printf("post-processing %v failed: %v", sourcefile, err)
+			} else {
+				log.Printf("successfully ran post-process on %v", sourcefile)
 
-	// 			err = copyFile(sourcefile, filepath.Join(d.copydir, filename))
-	// 			if err != nil {
-	// 				log.Printf("error storing copy in paperless incoming dir %v: %v", d.copydir, err)
-	// 			} else {
-	// 				log.Printf("stored copy as %v in paperless incoming dir", filename)
-	// 			}
-	// 		}
-	// 	}()
-	// }
+				err = os.Rename(processed, sourcefile)
+				if err != nil {
+					log.Printf("renaming %v failed: %v", sourcefile, err)
+				}
+			}
+		}()
+	}
+
+	return nil
+}
+
+func RunProcess(ctx context.Context, newFiles <-chan string, dataDir string) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case filename := <-newFiles:
+			err := processFile(ctx, dataDir, filename)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }

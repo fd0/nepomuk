@@ -1,4 +1,4 @@
-package main
+package process
 
 import (
 	"errors"
@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"time"
 
 	pdfcpu "github.com/pdfcpu/pdfcpu/pkg/api"
 )
@@ -73,41 +72,6 @@ func FindLastFilename(dir, currentFilename string) (string, error) {
 	}
 
 	return "", ErrNoLastFileFound
-}
-
-func SaveFile(targetdir, path string, rd io.Reader) (filename string, n int64, err error) {
-	ext := filepath.Ext(path)
-	basename := filepath.Base(path)
-	suffix := ""
-
-	switch {
-	case strings.HasPrefix(basename, "duplex-odd"):
-		suffix = "_duplex-odd"
-	case strings.HasPrefix(basename, "duplex-even"):
-		suffix = "_duplex-even"
-	}
-
-	name := time.Now().Format(filenameFormat) + suffix + ext
-
-	f, err := os.Create(filepath.Join(targetdir, name))
-	if err != nil {
-		return "", 0, fmt.Errorf("create: %w", err)
-	}
-
-	n, err = io.Copy(f, rd)
-	if err != nil {
-		_ = f.Close()
-		_ = os.Remove(f.Name())
-
-		return "", n, fmt.Errorf("copy: %w", err)
-	}
-
-	err = f.Close()
-	if err != nil {
-		return "", n, fmt.Errorf("close: %w", err)
-	}
-
-	return name, n, nil
 }
 
 // Files is used to sort a list of files in naming order (so foo1.pdf is
