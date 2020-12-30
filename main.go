@@ -125,8 +125,12 @@ func main() {
 	})
 
 	wg.Go(func() error {
-		log.Printf("Watch for new files in %v", incomingDir)
-		return ingest.RunWatcher(ctx, incomingDir, opts.Verbose, handler)
+		watcher := &ingest.Watcher{
+			Dir:       incomingDir,
+			Verbose:   opts.Verbose,
+			OnNewFile: handler,
+		}
+		return watcher.Run(ctx)
 	})
 
 	wg.Go(func() error {
