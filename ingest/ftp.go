@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -138,6 +139,16 @@ type FTPServer struct {
 
 // Run starts the server. When ctx is canceled, the listener is stopped.
 func (srv *FTPServer) Run(ctx context.Context) error {
+	// process all pre-existing files
+	entries, err := ioutil.ReadDir(srv.TargetDir)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		srv.OnFileUpload(filepath.Join(srv.TargetDir, entry.Name()))
+	}
+
 	serverOpts := &core.ServerOpts{
 		WelcomeMessage: "Nepomuk Archive System",
 		Auth:           allowAll{},
@@ -152,8 +163,6 @@ func (srv *FTPServer) Run(ctx context.Context) error {
 	}
 
 	ftpServer := core.NewServer(serverOpts)
-
-	var listener net.Listener
 
 	listener, err := net.Listen("tcp", srv.Bind)
 	if err != nil {
