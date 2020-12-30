@@ -105,7 +105,7 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 		return n, fmt.Errorf("close: %w", err)
 	}
 
-	d.OnFileUpload(filepath.Join(d.targetdir, filename))
+	d.OnFileUpload(filename)
 
 	return n, err
 }
