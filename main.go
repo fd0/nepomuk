@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 
+	"github.com/fd0/nepomuk/extract"
 	"github.com/fd0/nepomuk/ingest"
 	"github.com/fd0/nepomuk/process"
 	"github.com/spf13/pflag"
@@ -15,6 +16,7 @@ import (
 )
 
 var opts = struct {
+	Config  string
 	BaseDir string
 	Listen  string
 	Verbose bool
@@ -73,6 +75,7 @@ func main() {
 	log.SetFlags(0)
 
 	fs := pflag.NewFlagSet("nepomuk-ingester", pflag.ContinueOnError)
+	fs.StringVar(&opts.Config, "config", "config.yml", "load config from `file.yml`")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "nepomuk base `directory`")
 	fs.StringVar(&opts.Listen, "listen", ":2121", "listen on `addr`")
 	fs.BoolVar(&opts.Verbose, "verbose", false, "print verbose messages")
@@ -85,6 +88,16 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
+	}
+
+	cfg, err := LoadConfig(opts.Config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if opts.Verbose {
+		log.Printf("loaded config from %v", opts.Config)
 	}
 
 	err = CheckTargetDir(opts.BaseDir)
@@ -151,14 +164,12 @@ func main() {
 	})
 
 	wg.Go(func() error {
-		for {
-			select {
-			case <-ctx.Done():
-				return nil
-			case filename := <-processedFiles:
-				log.Printf("new processed file: %v", filename)
-			}
+		extracter := extract.Extracter{
+			ArchiveDir:     dataDir,
+			Correspondents: cfg.Correspondents,
 		}
+
+		return extracter.Run(ctx, processedFiles)
 	})
 
 	err = wg.Wait()
