@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 
 	"github.com/rjeczalik/notify"
@@ -12,8 +11,7 @@ import (
 
 // Watcher calls OnNewFile when a new file is placed in Dir.
 type Watcher struct {
-	Dir     string
-	Verbose bool
+	Dir string
 
 	OnNewFile func(filename string)
 }
@@ -38,10 +36,6 @@ func (w *Watcher) Run(ctx context.Context) error {
 		return fmt.Errorf("inotify watch failed: %w", err)
 	}
 
-	if w.Verbose {
-		log.Printf("Watch for new files in %v", w.Dir)
-	}
-
 outer:
 	for {
 		select {
@@ -50,10 +44,6 @@ outer:
 		case ev, ok := <-ch:
 			if !ok {
 				return nil
-			}
-
-			if w.Verbose {
-				log.Printf("received event %+v", ev)
 			}
 
 			w.OnNewFile(ev.Path())

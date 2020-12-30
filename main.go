@@ -108,32 +108,40 @@ func main() {
 	defer cancel()
 
 	newFiles := make(chan string, 20)
-	handler := func(filename string) {
-		newFiles <- filename
-	}
 
 	// start all processes
 	wg.Go(func() error {
 		srv := &ingest.FTPServer{
-			TargetDir:    uploadedDir,
-			Verbose:      opts.Verbose,
-			Bind:         opts.Listen,
-			OnFileUpload: handler,
+			TargetDir: uploadedDir,
+			Verbose:   opts.Verbose,
+			Bind:      opts.Listen,
+			OnFileUpload: func(filename string) {
+				newFiles <- filename
+			},
 		}
 		return srv.Run(ctx)
 	})
 
 	wg.Go(func() error {
+		log.Printf("watch for new files in %v", incomingDir)
 		watcher := &ingest.Watcher{
-			Dir:       incomingDir,
-			Verbose:   opts.Verbose,
-			OnNewFile: handler,
+			Dir: incomingDir,
+			OnNewFile: func(filename string) {
+				newFiles <- filename
+			},
 		}
 		return watcher.Run(ctx)
 	})
 
+	processedFiles := make(chan string, 20)
+
 	wg.Go(func() error {
-		processor := &process.Processor{DataDir: dataDir}
+		processor := &process.Processor{
+			ProcessedDir: processedDir,
+			OnFileProcessed: func(filename string) {
+				processedFiles <- filename
+			},
+		}
 		return processor.Run(ctx, newFiles)
 	})
 

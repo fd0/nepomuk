@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -178,8 +177,9 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 	return targetfile, nil
 }
 
-// TTryJoinPages finds the matching file with odd pages and creates a joined
-// document. The other file is searched for in the same directory.
+// TryJoinPages finds the matching file with odd pages and creates a joined
+// document. The other file is searched for in the same directory. On success,
+// the sources files are removed.
 func TryJoinPages(filename string) (string, error) {
 	lastfile, err := FindLastFilename(filepath.Dir(filename), filepath.Base(filename))
 	if err != nil {
@@ -205,8 +205,6 @@ func TryJoinPages(filename string) (string, error) {
 func PostProcess(ctx context.Context, targetDir, filename string) (string, error) {
 	dest := filepath.Join(targetDir, filepath.Base(filename))
 
-	log.Printf("running post process %v, output file %v", filename, dest)
-
 	cmd := exec.CommandContext(ctx,
 		"ocrmypdf",
 		"--quiet", "--deskew", "--clean", "--clean-final",
@@ -221,40 +219,4 @@ func PostProcess(ctx context.Context, targetDir, filename string) (string, error
 	}
 
 	return dest, nil
-}
-
-func copyFile(sourcefile, destfile string) error {
-	src, err := os.Open(sourcefile)
-	if err != nil {
-		return fmt.Errorf("open %v: %w", sourcefile, err)
-	}
-
-	dst, err := os.OpenFile(destfile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
-	if err != nil {
-		_ = src.Close()
-		return fmt.Errorf("create %v: %w", destfile, err)
-	}
-
-	_, err = io.Copy(dst, src)
-	if err != nil {
-		_ = src.Close()
-		_ = dst.Close()
-		_ = os.Remove(destfile)
-		return fmt.Errorf("copy %v -> %v: %w", sourcefile, destfile, err)
-	}
-
-	err = src.Close()
-	if err != nil {
-		_ = dst.Close()
-		_ = os.Remove(destfile)
-		return fmt.Errorf("close %v: %w", sourcefile, err)
-	}
-
-	err = dst.Close()
-	if err != nil {
-		_ = os.Remove(destfile)
-		return fmt.Errorf("close %v: %w", destfile, err)
-	}
-
-	return nil
 }
