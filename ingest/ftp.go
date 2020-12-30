@@ -71,6 +71,12 @@ const filenameFormat = "20060102-150405"
 
 func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, error) {
 	ext := filepath.Ext(path)
+
+	if ext != ".pdf" {
+		log.Printf("PutFile: rejecting invalid extension %q: %q", path, ext)
+		return -1, errors.New("invalid extension")
+	}
+
 	basename := filepath.Base(path)
 	suffix := ""
 
