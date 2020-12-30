@@ -175,10 +175,6 @@ func (srv *FTPServer) Run(ctx context.Context) error {
 		return fmt.Errorf("listen: %w", err)
 	}
 
-	if srv.Verbose {
-		log.Printf("Start FTP server on %v\n", srv.Bind)
-	}
-
 	ch := make(chan error, 1)
 
 	go func() {

@@ -111,14 +111,18 @@ func main() {
 
 	// start all processes
 	wg.Go(func() error {
+		log.Printf("Start FTP server on %v\n", opts.Listen)
+
 		srv := &ingest.FTPServer{
 			TargetDir: uploadedDir,
 			Verbose:   opts.Verbose,
 			Bind:      opts.Listen,
 			OnFileUpload: func(filename string) {
+				log.Printf("new file uploaded: %v", filename)
 				newFiles <- filename
 			},
 		}
+
 		return srv.Run(ctx)
 	})
 
@@ -127,6 +131,7 @@ func main() {
 		watcher := &ingest.Watcher{
 			Dir: incomingDir,
 			OnNewFile: func(filename string) {
+				log.Printf("new file found: %v", filename)
 				newFiles <- filename
 			},
 		}
