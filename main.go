@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/fd0/nepomuk/ingest"
+	"github.com/fd0/nepomuk/process"
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
 )
@@ -93,16 +94,14 @@ func main() {
 
 	incomingDir := filepath.Join(opts.BaseDir, "incoming")
 	uploadedDir := filepath.Join(opts.BaseDir, "uploaded")
+	processedDir := filepath.Join(opts.BaseDir, "processed")
 	dataDir := filepath.Join(opts.BaseDir, "data")
 
-	err = CheckTargetDir(incomingDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = CheckTargetDir(uploadedDir)
-	if err != nil {
-		log.Fatal(err)
+	for _, dir := range []string{incomingDir, uploadedDir, processedDir, dataDir} {
+		err = CheckTargetDir(dir)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	wg, ctx, cancel := setupRootContext()
@@ -134,7 +133,8 @@ func main() {
 	})
 
 	wg.Go(func() error {
-		return RunProcess(ctx, newFiles, dataDir)
+		processor := &process.Processor{DataDir: dataDir}
+		return processor.Run(ctx, newFiles)
 	})
 
 	err = wg.Wait()

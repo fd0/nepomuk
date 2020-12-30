@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -177,10 +178,12 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 	return targetfile, nil
 }
 
-func TryJoinPages(targetdir, filename string) (string, error) {
-	lastfile, err := FindLastFilename(targetdir, filename)
+// TTryJoinPages finds the matching file with odd pages and creates a joined
+// document. The other file is searched for in the same directory.
+func TryJoinPages(filename string) (string, error) {
+	lastfile, err := FindLastFilename(filepath.Dir(filename), filepath.Base(filename))
 	if err != nil {
-		return "", fmt.Errorf("find last file in %v: %w", targetdir, err)
+		return "", fmt.Errorf("find last file in %v: %w", filepath.Dir(filename), err)
 	}
 
 	log.Printf("trying to join pages, filename %v, last %v", filename, lastfile)
@@ -189,7 +192,7 @@ func TryJoinPages(targetdir, filename string) (string, error) {
 		return "", fmt.Errorf("odd pages for %v not found", filename)
 	}
 
-	combined, err := JoinPages(targetdir, lastfile, filename)
+	combined, err := JoinPages(filepath.Dir(filename), lastfile, filepath.Base(filename))
 	if err != nil {
 		return "", fmt.Errorf("joining pages for %v and %v failed: %W", lastfile, filename, err)
 	}
@@ -197,17 +200,19 @@ func TryJoinPages(targetdir, filename string) (string, error) {
 	return combined, nil
 }
 
-func PostProcess(filename string) (string, error) {
-	ext := filepath.Ext(filename)
-	base := strings.TrimSuffix(filename, ext)
-	sidecar := base + ".txt"
-	dest := base + "_processed" + ext
+// PostProcess runs OCR and optimizations on filename. On success, the file is
+// written to targetDir.
+func PostProcess(ctx context.Context, targetDir, filename string) (string, error) {
+	dest := filepath.Join(targetDir, filepath.Base(filename))
 
-	cmd := exec.Command(
-		"ocrmypdf", "--quiet",
-		"--deskew", "--clean", "--clean-final",
-		"-l", "deu",
-		"--sidecar", sidecar, filename, dest)
+	log.Printf("running post process %v, output file %v", filename, dest)
+
+	cmd := exec.CommandContext(ctx,
+		"ocrmypdf",
+		"--quiet", "--deskew", "--clean", "--clean-final",
+		"--skip-text",
+		"--language", "deu",
+		filename, dest)
 	cmd.Stderr = os.Stderr
 
 	err := cmd.Run()
