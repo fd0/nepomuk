@@ -7,8 +7,8 @@ import (
 	"os/exec"
 )
 
-// ExtractText returns the text in the pdf file.
-func ExtractText(filename string) ([]byte, error) {
+// Text returns the text in the pdf file.
+func Text(filename string) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 
 	cmd := exec.Command("pdftotext", filename, "-")
