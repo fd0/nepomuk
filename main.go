@@ -115,8 +115,13 @@ func main() {
 
 	// start all processes
 	wg.Go(func() error {
-		log.Printf("Start FTP server on %v\n", opts.Listen)
-		return ingest.RunFTPServer(ctx, uploadedDir, opts.Verbose, opts.Listen, handler)
+		srv := &ingest.FTPServer{
+			TargetDir:    uploadedDir,
+			Verbose:      opts.Verbose,
+			Bind:         opts.Listen,
+			OnFileUpload: handler,
+		}
+		return srv.Run(ctx)
 	})
 
 	wg.Go(func() error {

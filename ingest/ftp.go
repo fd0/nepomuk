@@ -125,36 +125,49 @@ func (allowAll) CheckPasswd(string, string) (bool, error) {
 	return true, nil
 }
 
-// RunFTPServer runs an ftp server on the given address, uploaded files will be
-// placed into targetDir. After the upload is finished, onFileUpload is run
-// with the new filename.
-func RunFTPServer(ctx context.Context, targetDir string, verbose bool, bindaddr string, onFileUpload func(filename string)) error {
+// FTPServer implements an FTP server which only supports uploading files. The
+// files will be placed in TargetDir and the callback OnFileUpload is run after
+// an upload completed.
+type FTPServer struct {
+	TargetDir string
+	Verbose   bool
+	Bind      string
+
+	OnFileUpload func(filename string)
+}
+
+// Run starts the server. When ctx is canceled, the listener is stopped.
+func (srv *FTPServer) Run(ctx context.Context) error {
 	serverOpts := &core.ServerOpts{
 		WelcomeMessage: "Nepomuk Archive System",
 		Auth:           allowAll{},
 		Factory: factory{
-			targetdir:    targetDir,
-			OnFileUpload: onFileUpload,
+			targetdir:    srv.TargetDir,
+			OnFileUpload: srv.OnFileUpload,
 		},
 	}
 
-	if !verbose {
+	if !srv.Verbose {
 		serverOpts.Logger = &core.DiscardLogger{}
 	}
 
-	srv := core.NewServer(serverOpts)
+	ftpServer := core.NewServer(serverOpts)
 
 	var listener net.Listener
 
-	listener, err := net.Listen("tcp", bindaddr)
+	listener, err := net.Listen("tcp", srv.Bind)
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
+	}
+
+	if srv.Verbose {
+		log.Printf("Start FTP server on %v\n", srv.Bind)
 	}
 
 	ch := make(chan error, 1)
 
 	go func() {
-		ch <- srv.Serve(listener)
+		ch <- ftpServer.Serve(listener)
 	}()
 
 	select {
