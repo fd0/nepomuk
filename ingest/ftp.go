@@ -1,12 +1,16 @@
-package main
+package ingest
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"goftp.io/server/core"
 )
@@ -62,13 +66,45 @@ func (Driver) GetFile(string, int64) (int64, io.ReadCloser, error) {
 	return 0, nil, errors.New("not implemented")
 }
 
+const filenameFormat = "20060102-150405"
+
 func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, error) {
-	filename, n, err := SaveFile(d.targetdir, path, rd)
-	if err != nil {
-		return n, err
+	ext := filepath.Ext(path)
+	basename := filepath.Base(path)
+	suffix := ""
+
+	switch {
+	case strings.HasPrefix(basename, "duplex-odd"):
+		suffix = "_duplex-odd"
+	case strings.HasPrefix(basename, "duplex-even"):
+		suffix = "_duplex-even"
 	}
 
-	d.OnFileUpload(filename)
+	name := time.Now().Format(filenameFormat) + suffix + ext
+	filename := filepath.Join(d.targetdir, name)
+
+	f, err := os.Create(filename)
+	if err != nil {
+		log.Printf("PutFile: create: %v", err)
+		return 0, fmt.Errorf("create: %w", err)
+	}
+
+	n, err := io.Copy(f, rd)
+	if err != nil {
+		_ = f.Close()
+		_ = os.Remove(f.Name())
+
+		log.Printf("PutFile: copy: %v", err)
+		return n, fmt.Errorf("copy: %w", err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		log.Printf("PutFile: close: %v", err)
+		return n, fmt.Errorf("close: %w", err)
+	}
+
+	d.OnFileUpload(filepath.Join(d.targetdir, filename))
 
 	return n, err
 }
@@ -89,6 +125,9 @@ func (AllowAll) CheckPasswd(string, string) (bool, error) {
 	return true, nil
 }
 
+// RunFTPServer runs an ftp server on the given address, uploaded files will be
+// placed into targetDir. After the upload is finished, onFileUpload is run
+// with the new filename.
 func RunFTPServer(ctx context.Context, targetDir string, verbose bool, bindaddr string, onFileUpload func(filename string)) error {
 	serverOpts := &core.ServerOpts{
 		WelcomeMessage: "Nepomuk Archive System",

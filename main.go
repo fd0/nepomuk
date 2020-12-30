@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 
+	"github.com/fd0/nepomuk/ingest"
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
 )
@@ -103,26 +104,34 @@ func main() {
 		log.Fatal(err)
 	}
 
-	handler := func(filename string) {
-		log.Printf("uploaded file %v\n", filename)
-	}
-
 	wg, ctx, cancel := setupRootContext()
 	defer cancel()
 
+	newFiles := make(chan string, 20)
+	handler := func(filename string) {
+		newFiles <- filename
+	}
+
 	// start all processes
 	wg.Go(func() error {
-		if opts.Verbose {
-			log.Printf("Start FTP server on %v\n", opts.Listen)
-		}
-		return RunFTPServer(ctx, uploadedDir, opts.Verbose, opts.Listen, handler)
+		log.Printf("Start FTP server on %v\n", opts.Listen)
+		return ingest.RunFTPServer(ctx, uploadedDir, opts.Verbose, opts.Listen, handler)
 	})
 
 	wg.Go(func() error {
-		if opts.Verbose {
-			log.Printf("Watch for new files in %v", incomingDir)
+		log.Printf("Watch for new files in %v", incomingDir)
+		return ingest.RunWatcher(ctx, incomingDir, opts.Verbose, handler)
+	})
+
+	wg.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case filename := <-newFiles:
+				log.Printf("process new file %v", filename)
+			}
 		}
-		return RunWatcher(ctx, incomingDir, opts.Verbose, handler)
 	})
 
 	err = wg.Wait()
