@@ -150,6 +150,17 @@ func main() {
 		return processor.Run(ctx, newFiles)
 	})
 
+	wg.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case filename := <-processedFiles:
+				log.Printf("new processed file: %v", filename)
+			}
+		}
+	})
+
 	err = wg.Wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
