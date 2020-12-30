@@ -27,13 +27,13 @@ func (fileinfo) Group() string {
 	return "root"
 }
 
-// Driver implements an FTP file system.
-type Driver struct {
+// driver implements an FTP file system.
+type driver struct {
 	targetdir    string
 	OnFileUpload func(filename string)
 }
 
-func (Driver) Stat(filename string) (core.FileInfo, error) {
+func (driver) Stat(filename string) (core.FileInfo, error) {
 	fi, err := os.Lstat(".")
 	if err != nil {
 		return nil, err
@@ -42,33 +42,33 @@ func (Driver) Stat(filename string) (core.FileInfo, error) {
 	return fileinfo{fi}, nil
 }
 
-func (Driver) ListDir(string, func(core.FileInfo) error) error {
+func (driver) ListDir(string, func(core.FileInfo) error) error {
 	return errors.New("not implemented")
 }
 
-func (Driver) DeleteDir(string) error {
+func (driver) DeleteDir(string) error {
 	return errors.New("not implemented")
 }
 
-func (Driver) DeleteFile(string) error {
+func (driver) DeleteFile(string) error {
 	return errors.New("not implemented")
 }
 
-func (Driver) Rename(string, string) error {
+func (driver) Rename(string, string) error {
 	return errors.New("not implemented")
 }
 
-func (Driver) MakeDir(string) error {
+func (driver) MakeDir(string) error {
 	return errors.New("not implemented")
 }
 
-func (Driver) GetFile(string, int64) (int64, io.ReadCloser, error) {
+func (driver) GetFile(string, int64) (int64, io.ReadCloser, error) {
 	return 0, nil, errors.New("not implemented")
 }
 
 const filenameFormat = "20060102-150405"
 
-func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, error) {
+func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, error) {
 	ext := filepath.Ext(path)
 	basename := filepath.Base(path)
 	suffix := ""
@@ -109,19 +109,19 @@ func (d Driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 	return n, err
 }
 
-// Factory implements a factory for creating an FTP file system using Driver.
-type Factory struct {
+// factory implements a factory for creating an FTP file system using driver.
+type factory struct {
 	targetdir    string
 	OnFileUpload func(filename string)
 }
 
-func (f Factory) NewDriver() (core.Driver, error) {
-	return Driver{targetdir: f.targetdir, OnFileUpload: f.OnFileUpload}, nil // nolint:gosimple
+func (f factory) NewDriver() (core.Driver, error) {
+	return driver{targetdir: f.targetdir, OnFileUpload: f.OnFileUpload}, nil // nolint:gosimple
 }
 
-type AllowAll struct{}
+type allowAll struct{}
 
-func (AllowAll) CheckPasswd(string, string) (bool, error) {
+func (allowAll) CheckPasswd(string, string) (bool, error) {
 	return true, nil
 }
 
@@ -131,8 +131,8 @@ func (AllowAll) CheckPasswd(string, string) (bool, error) {
 func RunFTPServer(ctx context.Context, targetDir string, verbose bool, bindaddr string, onFileUpload func(filename string)) error {
 	serverOpts := &core.ServerOpts{
 		WelcomeMessage: "Nepomuk Archive System",
-		Auth:           AllowAll{},
-		Factory: Factory{
+		Auth:           allowAll{},
+		Factory: factory{
 			targetdir:    targetDir,
 			OnFileUpload: onFileUpload,
 		},
