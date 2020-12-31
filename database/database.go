@@ -11,12 +11,12 @@ import (
 )
 
 type Database struct {
-	Annotations map[string]Annotation
+	Annotations map[string]Annotation `yaml:"annotations"`
 }
 
 type Annotation struct {
-	Coresspondent string
-	Date          string
+	Coresspondent string `yaml:"correspondent"`
+	Date          string `yaml:"date"`
 }
 
 // Load loads a database from file. If the file does not exist, an empty Database is returned.
@@ -51,7 +51,7 @@ func Load(filename string) (*Database, error) {
 
 // Save saves the database to filename.
 func (db *Database) Save(filename string) error {
-	f, err := os.OpenFile(filename, os.O_TRUNC|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(filename, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return fmt.Errorf("save database %v failed: %w", filename, err)
 	}

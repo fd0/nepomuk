@@ -25,6 +25,11 @@ func (w *Watcher) Run(ctx context.Context) error {
 	}
 
 	for _, entry := range entries {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
 		w.OnNewFile(filepath.Join(w.Dir, entry.Name()))
 	}
 

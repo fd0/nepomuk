@@ -47,6 +47,12 @@ func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
 	}
 
 	for _, entry := range entries {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
 		filename := filepath.Join(s.ProcessedDir, entry.Name())
 		err := s.processFile(filename)
 		if err != nil {

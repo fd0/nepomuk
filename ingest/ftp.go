@@ -152,6 +152,11 @@ func (srv *FTPServer) Run(ctx context.Context) error {
 	}
 
 	for _, entry := range entries {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
 		srv.OnFileUpload(filepath.Join(srv.TargetDir, entry.Name()))
 	}
 
