@@ -15,7 +15,7 @@ type Database struct {
 }
 
 type Annotation struct {
-	Coresspondent string `yaml:"correspondent"`
+	Correspondent string `yaml:"correspondent"`
 	Date          string `yaml:"date"`
 }
 
@@ -100,5 +100,5 @@ func FileID(filename string) (string, error) {
 		return "", fmt.Errorf("close file: %w", err)
 	}
 
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	return hex.EncodeToString(hash.Sum(nil)[:4]), nil
 }

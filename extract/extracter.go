@@ -6,35 +6,47 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+
+	"github.com/fd0/nepomuk/database"
 )
 
 // Extracter extracts data from files and moves them into the right directory.
 type Extracter struct {
 	ArchiveDir   string
 	ProcessedDir string
+	Database     *database.Database
 
 	Correspondents []Correspondent
 }
 
 func (s *Extracter) processFile(filename string) error {
+	id, err := database.FileID(filename)
+	if err != nil {
+		return fmt.Errorf("ID for %v failed: %w", filename, err)
+	}
+
 	text, err := Text(filename)
 	if err != nil {
 		return fmt.Errorf("extract text from %v failed: %w", filename, err)
 	}
 
-	correspondent, err := FindCorrespondent(s.Correspondents, text)
+	a := database.Annotation{}
+	a.Correspondent, err = FindCorrespondent(s.Correspondents, text)
 	if err != nil {
 		log.Printf("unable to find correspondent for %v: %v", filename, err)
-		correspondent = ""
+		a.Correspondent = ""
 	}
 
-	date, err := Date(filename, text)
+	a.Date, err = Date(filename, text)
 	if err != nil {
-		log.Printf("unable to find date for %v: %v", filename, err)
-		date = ""
+		return fmt.Errorf("unable to find date for %v: %v", filename, err)
 	}
 
-	log.Printf("data for %v: %v %v", filename, date, correspondent)
+	log.Printf("data for %v (%v): %+v", filename, id, a)
+
+	s.Database.SetAnnotation(id, a)
+
+	// filename := fmt.Sprintf("%v")
 
 	return nil
 }

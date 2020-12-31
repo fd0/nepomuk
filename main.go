@@ -183,6 +183,7 @@ func main() {
 
 	wg.Go(func() error {
 		extracter := extract.Extracter{
+			Database:       db,
 			ArchiveDir:     dataDir,
 			ProcessedDir:   processedDir,
 			Correspondents: cfg.Correspondents,
