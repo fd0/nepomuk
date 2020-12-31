@@ -197,7 +197,8 @@ func main() {
 
 	exitCode := 0
 
-	// save database
+	log.Printf("save database")
+
 	dberr := db.Save(filepath.Join(opts.BaseDir, "db.json"))
 	if dberr != nil {
 		fmt.Fprintf(os.Stderr, "error saving database: %v", dberr)
