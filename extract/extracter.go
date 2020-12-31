@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fd0/nepomuk/database"
@@ -43,7 +44,9 @@ func (s *Extracter) processFile(filename string) error {
 		return fmt.Errorf("extract text from %v failed: %w", filename, err)
 	}
 
-	a := database.Annotation{}
+	a := database.Annotation{
+		Title: strings.TrimRight(filename, ".pdf"),
+	}
 
 	a.Correspondent, err = FindCorrespondent(s.Correspondents, text)
 
