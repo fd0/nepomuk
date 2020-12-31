@@ -86,6 +86,8 @@ func (s *Extracter) processFile(filename string) error {
 		return fmt.Errorf("move %v -> %v failed: %w", filename, newLocation, err)
 	}
 
+	log.Printf("%v moved to %v", filepath.Base(filename), newLocation)
+
 	return nil
 }
 
