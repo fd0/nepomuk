@@ -208,8 +208,9 @@ func PostProcess(ctx context.Context, targetDir, filename string) (string, error
 	cmd := exec.CommandContext(ctx,
 		"ocrmypdf",
 		"--quiet", "--deskew", "--clean", "--clean-final",
-		"--skip-text",
-		"--language", "deu",
+		"--language", "deu", // use Germany by default
+		"--skip-text",          // skip OCR for pages which already have text
+		"--output-type", "pdf", // instead of PDF/A, try to alter the file as little as possible
 		filename, dest)
 	cmd.Stderr = os.Stderr
 
