@@ -140,7 +140,7 @@ func main() {
 
 	newFiles := make(chan string, 20)
 
-	// start all processes
+	// receive files via FTP
 	wg.Go(func() error {
 		log.Printf("Start FTP server on %v\n", opts.Listen)
 
@@ -157,6 +157,7 @@ func main() {
 		return srv.Run(ctx)
 	})
 
+	// watch for new files in incoming/
 	wg.Go(func() error {
 		log.Printf("watch for new files in %v", incomingDir)
 		watcher := &ingest.Watcher{
@@ -171,6 +172,7 @@ func main() {
 
 	processedFiles := make(chan string, 20)
 
+	// process files received via FTP or incoming/
 	wg.Go(func() error {
 		processor := &process.Processor{
 			ProcessedDir: processedDir,
@@ -181,6 +183,7 @@ func main() {
 		return processor.Run(ctx, newFiles)
 	})
 
+	// extract data and sort processed files
 	wg.Go(func() error {
 		extracter := extract.Extracter{
 			Database:       db,

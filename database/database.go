@@ -17,6 +17,7 @@ type Database struct {
 type Annotation struct {
 	Correspondent string `yaml:"correspondent"`
 	Date          string `yaml:"date"`
+	Title         string `yaml:"title"`
 }
 
 // Load loads a database from file. If the file does not exist, an empty Database is returned.

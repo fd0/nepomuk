@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/fd0/nepomuk/database"
 )
+
+const DirectoryUnknownCorrespondent = "unknown"
 
 // Extracter extracts data from files and moves them into the right directory.
 type Extracter struct {
@@ -17,6 +21,15 @@ type Extracter struct {
 	Database     *database.Database
 
 	Correspondents []Correspondent
+}
+
+func generateFilename(id string, a database.Annotation) (string, error) {
+	date, err := time.Parse("02.01.2006", a.Date)
+	if err != nil {
+		return "", fmt.Errorf("parse date %q failed: %w", a.Date, err)
+	}
+
+	return fmt.Sprintf("%s-%s-%s.pdf", date.Format("20060102"), id, a.Title), nil
 }
 
 func (s *Extracter) processFile(filename string) error {
@@ -31,7 +44,9 @@ func (s *Extracter) processFile(filename string) error {
 	}
 
 	a := database.Annotation{}
+
 	a.Correspondent, err = FindCorrespondent(s.Correspondents, text)
+
 	if err != nil {
 		log.Printf("unable to find correspondent for %v: %v", filename, err)
 		a.Correspondent = ""
@@ -42,11 +57,31 @@ func (s *Extracter) processFile(filename string) error {
 		return fmt.Errorf("unable to find date for %v: %v", filename, err)
 	}
 
-	log.Printf("data for %v (%v): %+v", filename, id, a)
+	log.Printf("data for %v (%v): %+v", filepath.Base(filename), id, a)
 
 	s.Database.SetAnnotation(id, a)
 
-	// filename := fmt.Sprintf("%v")
+	newFilename, err := generateFilename(id, a)
+	if err != nil {
+		return fmt.Errorf("generate filename for %v failed: %w", filename, err)
+	}
+
+	// if correspondent could be found, create dir and move the file there
+	// otherwise, move it to the "unknown" directory
+	newLocation := filepath.Join(s.ArchiveDir, DirectoryUnknownCorrespondent, newFilename)
+	if a.Correspondent != "" {
+		newLocation = filepath.Join(s.ArchiveDir, a.Correspondent, newFilename)
+	}
+
+	err = os.MkdirAll(filepath.Dir(newLocation), 0755)
+	if err != nil {
+		return fmt.Errorf("unable to create dir for target file %v: %w", newLocation, err)
+	}
+
+	err = os.Rename(filename, newLocation)
+	if err != nil {
+		return fmt.Errorf("move %v -> %v failed: %w", filename, newLocation, err)
+	}
 
 	return nil
 }
