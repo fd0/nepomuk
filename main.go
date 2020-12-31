@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -75,8 +76,8 @@ func main() {
 	log.SetFlags(0)
 
 	fs := pflag.NewFlagSet("nepomuk-ingester", pflag.ContinueOnError)
-	fs.StringVar(&opts.Config, "config", "config.yml", "load config from `file.yml`")
-	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "nepomuk base `directory`")
+	fs.StringVar(&opts.Config, "config", "config.yml", "load config from `config.yml`, path may be relative to base directory")
+	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
 	fs.StringVar(&opts.Listen, "listen", ":2121", "listen on `addr`")
 	fs.BoolVar(&opts.Verbose, "verbose", false, "print verbose messages")
 
@@ -90,7 +91,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg, err := LoadConfig(opts.Config)
+	configPath := opts.Config
+	if !filepath.IsAbs(configPath) {
+		configPath = filepath.Join(opts.BaseDir, configPath)
+	}
+
+	cfg, err := LoadConfig(configPath)
+	if errors.Is(err, os.ErrNotExist) {
+		log.Printf("no config.yml found at %v", configPath)
+		cfg = Config{}
+		err = nil
+	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

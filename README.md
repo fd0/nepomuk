@@ -7,6 +7,7 @@ This program implements an archive for scanned PDF documents. The directory stru
  * `processed/` holds files optimized and OCRed before sorting
  * `db.json` contains data about the individual files
  * `archive/` contains subdirs for each correspondent, which then contains the files
+ * `config.yml` defines the matchers for the correspondents, among other things
 
 File names within `archive/Foo` (for correspondent called `Foo`) are constructed of the following fields, joined by dashes:
 

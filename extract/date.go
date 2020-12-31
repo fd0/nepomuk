@@ -6,7 +6,7 @@ import (
 )
 
 var dateRegexp = regexp.MustCompile(`\d{2}\.\d{2}\.\d{4}`)
-var filnenameDateRegexp = regexp.MustCompile(`(\d{8})\-(\d{6})`)
+var filnenameDateRegexp = regexp.MustCompile(`^(\d{8})\-(\d{6})`)
 
 // Date returns the first date found in the text, if that fails it tries to
 // extract the date from filename.

@@ -17,8 +17,6 @@ type Extracter struct {
 }
 
 func (s *Extracter) processFile(filename string) error {
-	log.Printf("extract data from %v", filename)
-
 	text, err := Text(filename)
 	if err != nil {
 		return fmt.Errorf("extract text from %v failed: %w", filename, err)
@@ -36,7 +34,7 @@ func (s *Extracter) processFile(filename string) error {
 		date = ""
 	}
 
-	log.Printf("%v: %v %v", filename, date, correspondent)
+	log.Printf("data for %v: %v %v", filename, date, correspondent)
 
 	return nil
 }
