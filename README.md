@@ -30,3 +30,7 @@ files can be found in `testdata/`. The script is run like this:
 In order for this to work, the file names must start with the strings
 `duplex-odd` and `duplex-even`, and the upload must happen in that order (first
 odd then even).
+
+# TODO
+
+ * Reload `config.yml` automatically
