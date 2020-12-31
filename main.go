@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 
+	"github.com/fd0/nepomuk/database"
 	"github.com/fd0/nepomuk/extract"
 	"github.com/fd0/nepomuk/ingest"
 	"github.com/fd0/nepomuk/process"
@@ -111,6 +112,12 @@ func main() {
 		log.Printf("loaded config from %v", opts.Config)
 	}
 
+	db, err := database.Load(filepath.Join(opts.BaseDir, "db.json"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v", err)
+		os.Exit(1)
+	}
+
 	err = CheckTargetDir(opts.BaseDir)
 	if err != nil {
 		log.Fatal(err)
@@ -184,9 +191,22 @@ func main() {
 		return extracter.Run(ctx, processedFiles)
 	})
 
+	// wait for all processes to complete
 	err = wg.Wait()
+
+	exitCode := 0
+
+	// save database
+	dberr := db.Save(filepath.Join(opts.BaseDir, "db.json"))
+	if dberr != nil {
+		fmt.Fprintf(os.Stderr, "error saving database: %v", dberr)
+		exitCode = 1
+	}
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		exitCode = 1
 	}
+
+	os.Exit(exitCode)
 }

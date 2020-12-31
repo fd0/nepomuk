@@ -1,0 +1,16 @@
+# define correspondents, first match wins!
+correspondents:
+    - name: ASEAG
+      contains: aseag
+
+    - name: Deutsche Rentenversicherung
+      contains: deutsche rentenversicherung
+
+    - name: Finanzamt
+      contains: finanzamt
+
+    - name: Finanzamt
+      contains: finanzverwaltung
+
+    - name: Stadt Aachen
+      contains: stadt aachen
