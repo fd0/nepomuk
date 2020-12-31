@@ -166,6 +166,7 @@ func main() {
 	wg.Go(func() error {
 		extracter := extract.Extracter{
 			ArchiveDir:     dataDir,
+			ProcessedDir:   processedDir,
 			Correspondents: cfg.Correspondents,
 		}
 

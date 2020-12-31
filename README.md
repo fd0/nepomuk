@@ -1,15 +1,22 @@
-# Simple PDF Archive
+# Nepomuk PDF Archive
 
-This program implements an archive for scanned PDF documents. It consists of several different parts:
+This program implements an archive for scanned PDF documents. The directory structure is as follows:
 
- * An ingester process which runs an FTP server and collects files from an `incoming` directory. Files are de-duplexed and then processed with the program `ocrmypdf` which runs OCR and optimizes the PDF files
- * A sorter process which stores processed files from the ingester into a directory structure
-
-The directory structure is as follows:
-
- * `incoming/` place new files here (also used by the FTP server)
+ * `incoming/` place new files here manually
+ * `uploaded/` contains files uploaded via the FTP server
+ * `processed/` holds files optimized and OCRed before sorting
  * `db.json` contains data about the individual files
  * `archive/` contains subdirs for each correspondent, which then contains the files
+
+File names within `archive/Foo` (for correspondent called `Foo`) are constructed of the following fields, joined by dashes:
+
+ * Date (`YYYYMMDD`)
+ * Title
+ * ID (first four byte of the SHA256 hash of the file's content, in lower-case hex characters, e.g. `3c18aae3`)
+
+Example: `20201132-Title of the Document-3c18aae3.pdf`:
+
+The ID is used to look up the file in the `db.json` file, which contains additional metadata.
 
 # FTP Server
 

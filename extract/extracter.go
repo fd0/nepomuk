@@ -3,12 +3,15 @@ package extract
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 )
 
 // Extracter extracts data from files and moves them into the right directory.
 type Extracter struct {
-	ArchiveDir string
+	ArchiveDir   string
+	ProcessedDir string
 
 	Correspondents []Correspondent
 }
@@ -39,6 +42,20 @@ func (s *Extracter) processFile(filename string) error {
 }
 
 func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
+	// process all pre-existing files
+	entries, err := ioutil.ReadDir(s.ProcessedDir)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		filename := filepath.Join(s.ProcessedDir, entry.Name())
+		err := s.processFile(filename)
+		if err != nil {
+			log.Printf("error extracting data from file %v: %v", filename, err)
+		}
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
