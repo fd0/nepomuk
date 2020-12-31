@@ -149,7 +149,7 @@ func main() {
 			Verbose:   opts.Verbose,
 			Bind:      opts.Listen,
 			OnFileUpload: func(filename string) {
-				log.Printf("new file uploaded: %v", filename)
+				log.Printf("new file uploaded: %v", filepath.Base(filename))
 				newFiles <- filename
 			},
 		}
@@ -163,7 +163,7 @@ func main() {
 		watcher := &ingest.Watcher{
 			Dir: incomingDir,
 			OnNewFile: func(filename string) {
-				log.Printf("new file found: %v", filename)
+				log.Printf("new file found: %v", filepath.Base(filename))
 				newFiles <- filename
 			},
 		}

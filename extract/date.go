@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var dateRegexp = regexp.MustCompile(`\d{2}\.\d{2}\.\d{4}`)
+var dateRegexp = regexp.MustCompile(`[0123][0-9]\.[01][0-9]\.(19|20)\d{2}`)
 var filnenameDateRegexp = regexp.MustCompile(`^((19|20)\d{6})\-`)
 
 // reformatDate parses the date in s according to format and returns the standard format DD.MM.YYYY

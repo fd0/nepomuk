@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -39,7 +40,7 @@ func (p *Processor) processFile(ctx context.Context, filename string) (string, e
 		return p.processFile(ctx, sourcefile)
 	}
 
-	log.Printf("running post-process for %v", filename)
+	log.Printf("running post-process for %v", filepath.Base(filename))
 
 	processed, err := PostProcess(ctx, p.ProcessedDir, filename)
 	if err != nil {
@@ -62,7 +63,7 @@ func (p *Processor) Run(ctx context.Context, newFiles <-chan string) error {
 		case filename := <-newFiles:
 			processedFile, err := p.processFile(ctx, filename)
 			if err != nil {
-				log.Printf("process %v failed: %v", filename, err)
+				log.Printf("process %v failed: %v", filepath.Base(filename), err)
 				continue
 			}
 

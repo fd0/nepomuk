@@ -45,7 +45,7 @@ func (s *Extracter) processFile(filename string) error {
 	}
 
 	a := database.Annotation{
-		Title: strings.TrimRight(filename, ".pdf"),
+		Title: strings.TrimRight(filepath.Base(filename), ".pdf"),
 	}
 
 	a.Correspondent, err = FindCorrespondent(s.Correspondents, text)
