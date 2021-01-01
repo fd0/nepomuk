@@ -73,6 +73,8 @@ func setupRootContext() (wg *errgroup.Group, ctx context.Context, cancel func())
 	return wg, ctx, cancel
 }
 
+const defaultChannelBufferSize = 20
+
 func main() {
 	log.SetFlags(0)
 
@@ -83,7 +85,7 @@ func main() {
 	fs.BoolVar(&opts.Verbose, "verbose", false, "print verbose messages")
 
 	err := fs.Parse(os.Args)
-	if err == pflag.ErrHelp {
+	if errors.Is(err, pflag.ErrHelp) {
 		os.Exit(0)
 	}
 
@@ -100,9 +102,11 @@ func main() {
 	cfg, err := LoadConfig(configPath)
 	if errors.Is(err, os.ErrNotExist) {
 		log.Printf("no config.yml found at %v", configPath)
+
 		cfg = Config{}
 		err = nil
 	}
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -136,9 +140,8 @@ func main() {
 	}
 
 	wg, ctx, cancel := setupRootContext()
-	defer cancel()
 
-	newFiles := make(chan string, 20)
+	newFiles := make(chan string, defaultChannelBufferSize)
 
 	// receive files via FTP
 	wg.Go(func() error {
@@ -167,10 +170,11 @@ func main() {
 				newFiles <- filename
 			},
 		}
+
 		return watcher.Run(ctx)
 	})
 
-	processedFiles := make(chan string, 20)
+	processedFiles := make(chan string, defaultChannelBufferSize)
 
 	// process files received via FTP or incoming/
 	wg.Go(func() error {
@@ -180,6 +184,7 @@ func main() {
 				processedFiles <- filename
 			},
 		}
+
 		return processor.Run(ctx, newFiles)
 	})
 
@@ -205,13 +210,16 @@ func main() {
 	dberr := db.Save(filepath.Join(opts.BaseDir, "db.json"))
 	if dberr != nil {
 		fmt.Fprintf(os.Stderr, "error saving database: %v", dberr)
+
 		exitCode = 1
 	}
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+
 		exitCode = 1
 	}
 
+	cancel()
 	os.Exit(exitCode)
 }

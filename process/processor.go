@@ -24,6 +24,7 @@ func (p *Processor) processFile(ctx context.Context, filename string) (string, e
 	// ignore first files of duplex documents (with the odd pages)
 	if strings.HasSuffix(filename, "_duplex-odd.pdf") {
 		log.Printf("%v: ignoring file with odd pages for now", filename)
+
 		return "", nil
 	}
 
@@ -44,7 +45,7 @@ func (p *Processor) processFile(ctx context.Context, filename string) (string, e
 
 	processed, err := PostProcess(ctx, p.ProcessedDir, filename)
 	if err != nil {
-		return "", fmt.Errorf("post-processing: %v", err)
+		return "", fmt.Errorf("post-processing: %w", err)
 	}
 
 	err = os.Remove(filename)
@@ -64,6 +65,7 @@ func (p *Processor) Run(ctx context.Context, newFiles <-chan string) error {
 			processedFile, err := p.processFile(ctx, filename)
 			if err != nil {
 				log.Printf("process %v failed: %v", filepath.Base(filename), err)
+
 				continue
 			}
 

@@ -24,7 +24,9 @@ func TempDir(t testing.TB) (dir string, cleanup func()) {
 }
 
 func TestFindLastFilename(t *testing.T) {
-	var tests = []struct {
+	t.Parallel()
+
+	tests := []struct {
 		filenames []string
 		current   string
 		last      string
@@ -112,7 +114,12 @@ func TestFindLastFilename(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		// make a local copy of the range var
+		test := test
+
 		t.Run("", func(t *testing.T) {
+			t.Parallel()
+
 			tempdir, cleanup := TempDir(t)
 			t.Cleanup(cleanup)
 

@@ -16,8 +16,6 @@ import (
 	pdfcpu "github.com/pdfcpu/pdfcpu/pkg/api"
 )
 
-const filenameFormat = "20060102-150405"
-
 var filenameRegex = regexp.MustCompile(`^\d{8}-\d{6}(_duplex-odd|_duplex-even)?\.pdf$`)
 
 var ErrNoLastFileFound = errors.New("no last file found")
@@ -194,7 +192,7 @@ func TryJoinPages(filename string) (string, error) {
 
 	combined, err := JoinPages(filepath.Dir(filename), lastfile, filepath.Base(filename))
 	if err != nil {
-		return "", fmt.Errorf("joining pages for %v and %v failed: %W", lastfile, filename, err)
+		return "", fmt.Errorf("joining pages for %v and %v failed: %w", lastfile, filename, err)
 	}
 
 	return combined, nil

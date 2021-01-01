@@ -8,10 +8,12 @@ import (
 	"time"
 )
 
-var dateRegexp = regexp.MustCompile(`[0123][0-9]\.[01][0-9]\.(19|20)\d{2}`)
-var filnenameDateRegexp = regexp.MustCompile(`^((19|20)\d{6})\-`)
+var (
+	dateRegexp          = regexp.MustCompile(`[0123][0-9]\.[01][0-9]\.(19|20)\d{2}`)
+	filnenameDateRegexp = regexp.MustCompile(`^((19|20)\d{6})\-`)
+)
 
-// reformatDate parses the date in s according to format and returns the standard format DD.MM.YYYY
+// reformatDate parses the date in s according to format and returns the standard format DD.MM.YYYY.
 func reformatDate(s, format string) (string, error) {
 	d, err := time.Parse(format, s)
 	if err != nil {

@@ -27,6 +27,7 @@ func Load(filename string) (*Database, error) {
 		db := &Database{
 			Annotations: make(map[string]Annotation),
 		}
+
 		return db, nil
 	}
 
@@ -39,6 +40,7 @@ func Load(filename string) (*Database, error) {
 	err = json.NewDecoder(f).Decode(&db)
 	if err != nil {
 		_ = f.Close()
+
 		return nil, fmt.Errorf("decode database %v failed: %w", filename, err)
 	}
 
@@ -60,6 +62,7 @@ func (db *Database) Save(filename string) error {
 	err = json.NewEncoder(f).Encode(db)
 	if err != nil {
 		_ = f.Close()
+
 		return fmt.Errorf("serialize database to JSON failed: %w", err)
 	}
 
@@ -74,6 +77,7 @@ func (db *Database) Save(filename string) error {
 // GetAnnotation returns the annotation for a file ID.
 func (db *Database) GetAnnotation(id string) (Annotation, bool) {
 	a, ok := db.Annotations[id]
+
 	return a, ok
 }
 
@@ -86,13 +90,15 @@ func (db *Database) SetAnnotation(id string, a Annotation) {
 func FileID(filename string) (string, error) {
 	f, err := os.Open(filename)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("file ID open %v failed: %w", filename, err)
 	}
 
 	hash := sha256.New()
+
 	_, err = io.Copy(hash, f)
 	if err != nil {
 		_ = f.Close()
+
 		return "", fmt.Errorf("hashing %v failed: %w", filename, err)
 	}
 

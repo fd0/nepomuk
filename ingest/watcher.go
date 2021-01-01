@@ -16,12 +16,14 @@ type Watcher struct {
 	OnNewFile func(filename string)
 }
 
+const defaultInotifyChanBuf = 20
+
 // Run starts the watcher, it terminates when ctx is cancelled.
 func (w *Watcher) Run(ctx context.Context) error {
 	// process all pre-existing files
 	entries, err := ioutil.ReadDir(w.Dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("readdir %v: %w", w.Dir, err)
 	}
 
 	for _, entry := range entries {
@@ -33,7 +35,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 		w.OnNewFile(filepath.Join(w.Dir, entry.Name()))
 	}
 
-	ch := make(chan notify.EventInfo, 20)
+	ch := make(chan notify.EventInfo, defaultInotifyChanBuf)
 
 	// watch for events fired after creating files
 	err = notify.Watch(w.Dir, ch, notify.InCloseWrite, notify.InMovedTo)

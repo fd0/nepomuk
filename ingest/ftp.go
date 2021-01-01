@@ -37,7 +37,7 @@ type driver struct {
 func (driver) Stat(filename string) (core.FileInfo, error) {
 	fi, err := os.Lstat(".")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lstat %v: %w", filename, err)
 	}
 
 	return fileinfo{fi}, nil
@@ -74,6 +74,7 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 
 	if ext != ".pdf" {
 		log.Printf("PutFile: rejecting invalid extension %q: %q", path, ext)
+
 		return -1, errors.New("invalid extension")
 	}
 
@@ -93,6 +94,7 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 	f, err := os.Create(filename)
 	if err != nil {
 		log.Printf("PutFile: create: %v", err)
+
 		return 0, fmt.Errorf("create: %w", err)
 	}
 
@@ -102,18 +104,20 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 		_ = os.Remove(f.Name())
 
 		log.Printf("PutFile: copy: %v", err)
+
 		return n, fmt.Errorf("copy: %w", err)
 	}
 
 	err = f.Close()
 	if err != nil {
 		log.Printf("PutFile: close: %v", err)
+
 		return n, fmt.Errorf("close: %w", err)
 	}
 
 	d.OnFileUpload(filename)
 
-	return n, err
+	return n, nil
 }
 
 // factory implements a factory for creating an FTP file system using driver.
@@ -148,7 +152,7 @@ func (srv *FTPServer) Run(ctx context.Context) error {
 	// process all pre-existing files
 	entries, err := ioutil.ReadDir(srv.TargetDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("readdir %v: %w", srv.TargetDir, err)
 	}
 
 	for _, entry := range entries {
@@ -189,12 +193,13 @@ func (srv *FTPServer) Run(ctx context.Context) error {
 	select {
 	case err := <-ch:
 		lerr := listener.Close()
+
 		if err == nil {
 			err = lerr
 		}
+
 		return err
 	case <-ctx.Done():
-		err := listener.Close()
-		return err
+		return listener.Close()
 	}
 }

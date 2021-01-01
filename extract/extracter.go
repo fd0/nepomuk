@@ -52,12 +52,13 @@ func (s *Extracter) processFile(filename string) error {
 
 	if err != nil {
 		log.Printf("unable to find correspondent for %v: %v", filename, err)
+
 		a.Correspondent = ""
 	}
 
 	a.Date, err = Date(filename, text)
 	if err != nil {
-		return fmt.Errorf("unable to find date for %v: %v", filename, err)
+		return fmt.Errorf("unable to find date for %v: %w", filename, err)
 	}
 
 	log.Printf("data for %v (%v): %+v", filepath.Base(filename), id, a)
@@ -95,7 +96,7 @@ func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
 	// process all pre-existing files
 	entries, err := ioutil.ReadDir(s.ProcessedDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("readdir %v: %w", s.ProcessedDir, err)
 	}
 
 	for _, entry := range entries {
@@ -106,6 +107,7 @@ func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
 		}
 
 		filename := filepath.Join(s.ProcessedDir, entry.Name())
+
 		err := s.processFile(filename)
 		if err != nil {
 			log.Printf("error extracting data from file %v: %v", filename, err)
