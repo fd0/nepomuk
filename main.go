@@ -17,13 +17,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var opts = struct {
-	Config  string
-	BaseDir string
-	Listen  string
-	Verbose bool
-}{}
-
 // CheckTargetDir ensures that dir exists and is a directory.
 func CheckTargetDir(dir string) error {
 	fi, err := os.Lstat(dir)
@@ -75,9 +68,14 @@ func setupRootContext() (wg *errgroup.Group, ctx context.Context, cancel func())
 
 const defaultChannelBufferSize = 20
 
-func main() {
-	log.SetFlags(0)
+type Options struct {
+	Config  string
+	BaseDir string
+	Listen  string
+	Verbose bool
+}
 
+func parseOptions() (opts Options) {
 	fs := pflag.NewFlagSet("nepomuk-ingester", pflag.ContinueOnError)
 	fs.StringVar(&opts.Config, "config", "config.yml", "load config from `config.yml`, path may be relative to base directory")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
@@ -93,6 +91,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+
+	return opts
+}
+
+func main() {
+	// configure logging without any extra fields
+	log.SetFlags(0)
+
+	// parse flags and fill global struct
+	opts := parseOptions()
 
 	configPath := opts.Config
 	if !filepath.IsAbs(configPath) {
