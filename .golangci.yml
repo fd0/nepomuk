@@ -31,3 +31,9 @@ linters-settings:
   # tolerate up to 130 chars per line
   lll:
     line-length: 130
+
+  exhaustive:
+    # indicates that switch statements are to be considered exhaustive if a
+    # 'default' case is present, even if all enum members aren't listed in the
+    # switch
+    default-signifies-exhaustive: true
