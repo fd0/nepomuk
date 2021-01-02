@@ -214,7 +214,9 @@ func main() {
 
 		watcher := database.Watcher{
 			ArchiveDir: dataDir,
-			Database:   db,
+			OnFileMoved: func(oldName, newName string) {
+				log.Printf("rename %v -> %v", oldName, newName)
+			},
 		}
 
 		return watcher.Run(ctx)

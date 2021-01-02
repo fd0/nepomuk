@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
 	"path/filepath"
 
 	"github.com/rjeczalik/notify"
@@ -15,7 +14,8 @@ const defaultInotifyChanBuf = 20
 // Watcher keeps track of file renames.
 type Watcher struct {
 	ArchiveDir string
-	Database   *Database
+
+	OnFileMoved func(oldFilename, newFilename string)
 }
 
 // Run starts a process which watches archiveDir for changes and keeps
@@ -47,6 +47,7 @@ outer:
 
 			ev := evinfo.Sys().(*unix.InotifyEvent)
 
+			// keep state until we have collected both events
 			switch evinfo.Event() {
 			case notify.InMovedFrom:
 				oldFilename[ev.Cookie] = evinfo.Path()
@@ -66,10 +67,11 @@ outer:
 				continue
 			}
 
+			w.OnFileMoved(oldName, newName)
+
+			// remove state
 			delete(newFilename, ev.Cookie)
 			delete(oldFilename, ev.Cookie)
-
-			log.Printf("rename %v -> %v", oldName, newName)
 		}
 	}
 

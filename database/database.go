@@ -20,15 +20,18 @@ type Annotation struct {
 	Title         string `yaml:"title"`
 }
 
+// New returns a new empty database.
+func New() *Database {
+	return &Database{
+		Annotations: make(map[string]Annotation),
+	}
+}
+
 // Load loads a database from file. If the file does not exist, an empty Database is returned.
 func Load(filename string) (*Database, error) {
 	f, err := os.Open(filename)
 	if errors.Is(err, os.ErrNotExist) {
-		db := &Database{
-			Annotations: make(map[string]Annotation),
-		}
-
-		return db, nil
+		return New(), nil
 	}
 
 	if err != nil {
