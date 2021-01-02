@@ -33,6 +33,11 @@ func generateFilename(id string, a database.Annotation) (string, error) {
 	return fmt.Sprintf("%s-%s-%s.pdf", date.Format("20060102"), id, a.Title), nil
 }
 
+const (
+	newDirMode          = 0755
+	destinationFileMode = 0444
+)
+
 func (s *Extracter) processFile(filename string) error {
 	id, err := database.FileID(filename)
 	if err != nil {
@@ -77,7 +82,7 @@ func (s *Extracter) processFile(filename string) error {
 		newLocation = filepath.Join(s.ArchiveDir, a.Correspondent, newFilename)
 	}
 
-	err = os.MkdirAll(filepath.Dir(newLocation), 0755)
+	err = os.MkdirAll(filepath.Dir(newLocation), newDirMode)
 	if err != nil {
 		return fmt.Errorf("unable to create dir for target file %v: %w", newLocation, err)
 	}
@@ -85,6 +90,11 @@ func (s *Extracter) processFile(filename string) error {
 	err = os.Rename(filename, newLocation)
 	if err != nil {
 		return fmt.Errorf("move %v -> %v failed: %w", filename, newLocation, err)
+	}
+
+	err = os.Chmod(newLocation, destinationFileMode)
+	if err != nil {
+		return fmt.Errorf("chmod %v failed: %w", newLocation, err)
 	}
 
 	log.Printf("%v moved to %v", filepath.Base(filename), newLocation)
