@@ -12,13 +12,19 @@ import (
 
 const defaultInotifyChanBuf = 20
 
-// RunWatcher starts a process which watches archiveDir for changes and keeps
+// Watcher keeps track of file renames.
+type Watcher struct {
+	ArchiveDir string
+	Database   *Database
+}
+
+// Run starts a process which watches archiveDir for changes and keeps
 // it in sync with the db.
-func RunWatcher(ctx context.Context, db *Database, archiveDir string) error {
+func (w *Watcher) Run(ctx context.Context) error {
 	ch := make(chan notify.EventInfo, defaultInotifyChanBuf)
 
-	// watch for events fired when files are moved or renamed
-	err := notify.Watch(filepath.Join(archiveDir, "..."), ch, notify.InMovedFrom, notify.InMovedTo)
+	// recursively watch for events fired when files are moved or renamed
+	err := notify.Watch(filepath.Join(w.ArchiveDir, "..."), ch, notify.InMovedFrom, notify.InMovedTo)
 	if err != nil {
 		return fmt.Errorf("inotify watch failed: %w", err)
 	}

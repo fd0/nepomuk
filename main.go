@@ -212,7 +212,12 @@ func main() {
 	wg.Go(func() error {
 		log.Printf("watch for moved or renamed files in %v", dataDir)
 
-		return database.RunWatcher(ctx, db, dataDir)
+		watcher := database.Watcher{
+			ArchiveDir: dataDir,
+			Database:   db,
+		}
+
+		return watcher.Run(ctx)
 	})
 
 	// wait for all processes to complete
