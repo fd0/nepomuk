@@ -153,7 +153,7 @@ func main() {
 
 	// receive files via FTP
 	wg.Go(func() error {
-		log.Printf("Start FTP server on %v\n", opts.Listen)
+		log.Printf("start FTP server on %v\n", opts.Listen)
 
 		srv := &ingest.FTPServer{
 			TargetDir: uploadedDir,
@@ -206,6 +206,13 @@ func main() {
 		}
 
 		return extracter.Run(ctx, processedFiles)
+	})
+
+	// watch archive directory and make sure files are in sync between the database and the filenames
+	wg.Go(func() error {
+		log.Printf("watch for moved or renamed files in %v", dataDir)
+
+		return database.RunWatcher(ctx, db, dataDir)
 	})
 
 	// wait for all processes to complete

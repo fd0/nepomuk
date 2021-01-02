@@ -9,6 +9,6 @@ require (
 	goftp.io/server v0.4.1
 	golang.org/x/image v0.0.0-20201208152932-35266b937fa6 // indirect
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20191005200804-aed5e4c7ecf9 // indirect
+	golang.org/x/sys v0.0.0-20191005200804-aed5e4c7ecf9
 	gopkg.in/yaml.v2 v2.4.0
 )
