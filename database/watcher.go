@@ -15,11 +15,15 @@ const defaultInotifyChanBuf = 20
 type Watcher struct {
 	ArchiveDir string
 
+	// OnStartWatching is called when the watcher has subscribes to the directory change events
+	OnStartWatching func()
+
+	// OnFileMoved is called for each renamed file
 	OnFileMoved func(oldFilename, newFilename string)
 }
 
-// Run starts a process which watches archiveDir for changes and keeps
-// it in sync with the db.
+// Run starts a process which watches archiveDir for renames and provides a
+// callback for such files.
 func (w *Watcher) Run(ctx context.Context) error {
 	ch := make(chan notify.EventInfo, defaultInotifyChanBuf)
 
@@ -27,6 +31,10 @@ func (w *Watcher) Run(ctx context.Context) error {
 	err := notify.Watch(filepath.Join(w.ArchiveDir, "..."), ch, notify.InMovedFrom, notify.InMovedTo)
 	if err != nil {
 		return fmt.Errorf("inotify watch failed: %w", err)
+	}
+
+	if w.OnStartWatching != nil {
+		w.OnStartWatching()
 	}
 
 	// For each renamed file we get two events: InMovedTo (new filename) and

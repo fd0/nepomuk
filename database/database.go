@@ -11,10 +11,11 @@ import (
 )
 
 type Database struct {
-	Annotations map[string]Annotation `yaml:"annotations"`
+	Annotations map[string]File `yaml:"annotations"`
 }
 
-type Annotation struct {
+type File struct {
+	Filename      string `yaml:"filename"`
 	Correspondent string `yaml:"correspondent"`
 	Date          string `yaml:"date"`
 	Title         string `yaml:"title"`
@@ -23,7 +24,7 @@ type Annotation struct {
 // New returns a new empty database.
 func New() *Database {
 	return &Database{
-		Annotations: make(map[string]Annotation),
+		Annotations: make(map[string]File),
 	}
 }
 
@@ -77,16 +78,26 @@ func (db *Database) Save(filename string) error {
 	return nil
 }
 
-// GetAnnotation returns the annotation for a file ID.
-func (db *Database) GetAnnotation(id string) (Annotation, bool) {
+// GetFile returns the metadata for a file ID.
+func (db *Database) GetFile(id string) (File, bool) {
 	a, ok := db.Annotations[id]
 
 	return a, ok
 }
 
-// SetAnnotation saves the annotation for a file ID.
-func (db *Database) SetAnnotation(id string, a Annotation) {
+// SetFile updates the metadata for a file ID.
+func (db *Database) SetFile(id string, a File) {
 	db.Annotations[id] = a
+}
+
+// Filename returns the filename based on the metadata.
+func (db *Database) Filename(id string) string {
+	return ""
+}
+
+// ParseFilename tries to extract the metadata of a file from the file name.
+func ParseFilename(filename string) (File, error) {
+	return File{}, nil
 }
 
 // FileID returns the ID for filename.

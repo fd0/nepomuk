@@ -24,7 +24,7 @@ type Extracter struct {
 	Correspondents []Correspondent
 }
 
-func generateFilename(id string, a database.Annotation) (string, error) {
+func generateFilename(id string, a database.File) (string, error) {
 	date, err := time.Parse("02.01.2006", a.Date)
 	if err != nil {
 		return "", fmt.Errorf("parse date %q failed: %w", a.Date, err)
@@ -49,7 +49,7 @@ func (s *Extracter) processFile(filename string) error {
 		return fmt.Errorf("extract text from %v failed: %w", filename, err)
 	}
 
-	a := database.Annotation{
+	a := database.File{
 		Title: strings.TrimRight(filepath.Base(filename), ".pdf"),
 	}
 
@@ -68,7 +68,7 @@ func (s *Extracter) processFile(filename string) error {
 
 	log.Printf("data for %v (%v): %+v", filepath.Base(filename), id, a)
 
-	s.Database.SetAnnotation(id, a)
+	s.Database.SetFile(id, a)
 
 	newFilename, err := generateFilename(id, a)
 	if err != nil {
