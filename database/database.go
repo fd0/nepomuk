@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -131,6 +133,43 @@ func (db *Database) Filename(id string) (string, error) {
 	filename += ".pdf"
 
 	return filename, nil
+}
+
+// OnRename updates the database when a file is renamed by the user.
+func (db *Database) OnRename(oldName, newName string) error {
+	// try to extract id from filename
+	_, _, id, err := ParseFilename(filepath.Base(oldName))
+	if err != nil || id == "" {
+		// if that fails, hash the new file
+		id, err = FileID(newName)
+		if err != nil {
+			return fmt.Errorf("hash new filename failed: %w", err)
+		}
+	}
+
+	if id == "" {
+		return fmt.Errorf("extract id for %v failed", newName)
+	}
+
+	log.Printf("ID for filename is %v", id)
+
+	// extract new metadata from new name
+	date, title, _, err := ParseFilename(filepath.Base(newName))
+	if err != nil {
+		return fmt.Errorf("parse new filename failed: %w", err)
+	}
+
+	file, _ := db.GetFile(id)
+	log.Printf("file before: %+v", file)
+
+	file.Date = date
+	file.Title = title
+
+	log.Printf("file after: %+v", file)
+
+	db.SetFile(id, file)
+
+	return nil
 }
 
 // FileID returns the ID for filename.

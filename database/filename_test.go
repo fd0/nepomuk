@@ -13,26 +13,30 @@ func TestParseFilename(t *testing.T) {
 	}{
 		{
 			filename: "2003-01-02 foobar title string with spaces abf9c1b9.pdf",
-			date:     "2003-01-02",
+			date:     "02.01.2003",
 			title:    "foobar title string with spaces",
 			id:       "abf9c1b9",
 		},
 		{
 			filename: "2003-01-02 abf9c1b9.pdf",
-			date:     "2003-01-02",
+			date:     "02.01.2003",
 			title:    "",
 			id:       "abf9c1b9",
 		},
 		{
+			filename: "2003-01-02 foo bar.pdf",
+			date:     "02.01.2003",
+			title:    "foo bar",
+			id:       "",
+		},
+		{
+			filename: "2003-01-02.pdf",
+			date:     "02.01.2003",
+			title:    "",
+			id:       "",
+		},
+		{
 			filename: "2003-01 abf9c1b9.pdf",
-			err:      "invalid file name",
-		},
-		{
-			filename: "2003-01-01 .pdf",
-			err:      "invalid file name",
-		},
-		{
-			filename: "2003-01-01.pdf",
 			err:      "invalid file name",
 		},
 	}

@@ -227,6 +227,11 @@ func main() {
 			ArchiveDir: dataDir,
 			OnFileMoved: func(oldName, newName string) {
 				log.Printf("watcher: rename %v -> %v", oldName, newName)
+
+				err := db.OnRename(oldName, newName)
+				if err != nil {
+					log.Printf("watcher: rename failed: %v", err)
+				}
 			},
 		}
 
