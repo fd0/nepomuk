@@ -9,13 +9,15 @@ This program implements an archive for scanned PDF documents. The directory stru
  * `archive/` contains subdirs for each correspondent, which then contains the files
  * `config.yml` defines the matchers for the correspondents, among other things
 
-File names within `archive/Foo` (for correspondent called `Foo`) are constructed of the following fields, joined by dashes:
+File names within `archive/Foo` (for correspondent called `Foo`) are constructed of the following fields:
 
- * Date (`YYYYMMDD`)
+ * Date (`YYYY-MM-DD`)
  * Title
  * ID (first four byte of the SHA256 hash of the file's content, in lower-case hex characters, e.g. `3c18aae3`)
 
-Example: `20201132-Title of the Document-3c18aae3.pdf`:
+The fields are joined by a white space.
+
+Example: `2020-11-32 Title of the Document 3c18aae3.pdf`:
 
 The ID is used to look up the file in the `db.json` file, which contains additional metadata.
 

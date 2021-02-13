@@ -10,8 +10,16 @@ import (
 	"os"
 )
 
-type Database struct {
+// DB is the serialized data structure of a database.
+type DB struct {
 	Annotations map[string]File `yaml:"annotations"`
+}
+
+type Database struct {
+	DB
+
+	// OnChange is called when the annotation for a file is changed.
+	OnChange func(id string, oldAnnotation, newAnnotation File) `yaml:"-"`
 }
 
 type File struct {
@@ -24,36 +32,42 @@ type File struct {
 // New returns a new empty database.
 func New() *Database {
 	return &Database{
-		Annotations: make(map[string]File),
+		DB: DB{
+			Annotations: make(map[string]File),
+		},
 	}
 }
 
 // Load loads a database from file. If the file does not exist, an empty Database is returned.
-func Load(filename string) (*Database, error) {
+func (db *Database) Load(filename string) error {
 	f, err := os.Open(filename)
 	if errors.Is(err, os.ErrNotExist) {
-		return New(), nil
+		db.DB = DB{
+			Annotations: make(map[string]File),
+		}
+
+		return nil
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("open database failed: %w", err)
+		return fmt.Errorf("open database failed: %w", err)
 	}
 
-	var db Database
+	db.DB = DB{}
 
-	err = json.NewDecoder(f).Decode(&db)
+	err = json.NewDecoder(f).Decode(&db.DB)
 	if err != nil {
 		_ = f.Close()
 
-		return nil, fmt.Errorf("decode database %v failed: %w", filename, err)
+		return fmt.Errorf("decode database %v failed: %w", filename, err)
 	}
 
 	err = f.Close()
 	if err != nil {
-		return nil, fmt.Errorf("close database %v failed: %w", filename, err)
+		return fmt.Errorf("close database %v failed: %w", filename, err)
 	}
 
-	return &db, nil
+	return nil
 }
 
 // Save saves the database to filename.
@@ -63,7 +77,7 @@ func (db *Database) Save(filename string) error {
 		return fmt.Errorf("save database %v failed: %w", filename, err)
 	}
 
-	err = json.NewEncoder(f).Encode(db)
+	err = json.NewEncoder(f).Encode(db.DB)
 	if err != nil {
 		_ = f.Close()
 
@@ -87,17 +101,17 @@ func (db *Database) GetFile(id string) (File, bool) {
 
 // SetFile updates the metadata for a file ID.
 func (db *Database) SetFile(id string, a File) {
+	old := db.Annotations[id]
 	db.Annotations[id] = a
+
+	if db.OnChange != nil {
+		db.OnChange(id, old, a)
+	}
 }
 
 // Filename returns the filename based on the metadata.
 func (db *Database) Filename(id string) string {
 	return ""
-}
-
-// ParseFilename tries to extract the metadata of a file from the file name.
-func ParseFilename(filename string) (File, error) {
-	return File{}, nil
 }
 
 // FileID returns the ID for filename.

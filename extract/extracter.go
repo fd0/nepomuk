@@ -30,7 +30,7 @@ func generateFilename(id string, a database.File) (string, error) {
 		return "", fmt.Errorf("parse date %q failed: %w", a.Date, err)
 	}
 
-	return fmt.Sprintf("%s-%s-%s.pdf", date.Format("20060102"), id, a.Title), nil
+	return fmt.Sprintf("%s %s %s.pdf", date.Format("2006-01-02"), a.Title, id), nil
 }
 
 const (

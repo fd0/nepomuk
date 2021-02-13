@@ -124,10 +124,21 @@ func main() {
 		log.Printf("loaded config from %v", opts.Config)
 	}
 
-	db, err := database.Load(filepath.Join(opts.BaseDir, "db.json"))
+	db := database.New()
+
+	err = db.Load(filepath.Join(opts.BaseDir, "db.json"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v", err)
 		os.Exit(1)
+	}
+
+	db.OnChange = func(id string, oldAnnotation, newAnnotation database.File) {
+		log.Printf("database: data for file %v changed, saving database", id)
+
+		err := db.Save(filepath.Join(opts.BaseDir, "db.json"))
+		if err != nil {
+			log.Printf("database: save error: %v", err)
+		}
 	}
 
 	err = CheckTargetDir(opts.BaseDir)
@@ -227,7 +238,7 @@ func main() {
 
 	exitCode := 0
 
-	log.Printf("save database")
+	log.Printf("save database before shutdown")
 
 	dberr := db.Save(filepath.Join(opts.BaseDir, "db.json"))
 	if dberr != nil {
