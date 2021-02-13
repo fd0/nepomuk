@@ -23,7 +23,7 @@ The ID is used to look up the file in the `db.json` file, which contains additio
 
 For testing the FTP server, the scripts named `upload-*.lftp` can be used. The
 scripts as well as some sample PDF files can be found in the `testdata/`
-directory.
+directory, run `lftp -f testdata/upload-duplex.lftp`.
 
 If two files with filenames starting with `duplex-odd` followed by
 `duplex-even` are uploaded, the archive will join them. This can be used to

@@ -73,7 +73,7 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 	ext := filepath.Ext(path)
 
 	if ext != ".pdf" {
-		log.Printf("PutFile: rejecting invalid extension %q: %q", path, ext)
+		log.Printf("ftp: PutFile: rejecting invalid extension %q: %q", path, ext)
 
 		return -1, errors.New("invalid extension")
 	}
@@ -93,7 +93,7 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 
 	f, err := os.Create(filename)
 	if err != nil {
-		log.Printf("PutFile: create: %v", err)
+		log.Printf("ftp: PutFile: create: %v", err)
 
 		return 0, fmt.Errorf("create: %w", err)
 	}
@@ -103,14 +103,14 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 		_ = f.Close()
 		_ = os.Remove(f.Name())
 
-		log.Printf("PutFile: copy: %v", err)
+		log.Printf("ftp: PutFile: copy: %v", err)
 
 		return n, fmt.Errorf("copy: %w", err)
 	}
 
 	err = f.Close()
 	if err != nil {
-		log.Printf("PutFile: close: %v", err)
+		log.Printf("ftp: PutFile: close: %v", err)
 
 		return n, fmt.Errorf("close: %w", err)
 	}

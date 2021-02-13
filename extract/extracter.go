@@ -56,17 +56,20 @@ func (s *Extracter) processFile(filename string) error {
 	a.Correspondent, err = FindCorrespondent(s.Correspondents, text)
 
 	if err != nil {
-		log.Printf("unable to find correspondent for %v: %v", filename, err)
+		log.Printf("extracter: error for %v: %v", filename, err)
 
 		a.Correspondent = ""
 	}
 
 	a.Date, err = Date(filename, text)
 	if err != nil {
-		return fmt.Errorf("unable to find date for %v: %w", filename, err)
+		log.Printf("extracter: error for %v: %v", filename, err)
+
+		// use today's date for now
+		a.Date = time.Now().Format("02.01.2006")
 	}
 
-	log.Printf("data for %v (%v): %+v", filepath.Base(filename), id, a)
+	log.Printf("extracter: data for %v (%v): %+v", filepath.Base(filename), id, a)
 
 	s.Database.SetFile(id, a)
 
@@ -97,7 +100,7 @@ func (s *Extracter) processFile(filename string) error {
 		return fmt.Errorf("chmod %v failed: %w", newLocation, err)
 	}
 
-	log.Printf("%v moved to %v", filepath.Base(filename), newLocation)
+	log.Printf("extracter: move %v to %v", filepath.Base(filename), newLocation)
 
 	return nil
 }
@@ -120,7 +123,7 @@ func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
 
 		err := s.processFile(filename)
 		if err != nil {
-			log.Printf("error extracting data from file %v: %v", filename, err)
+			log.Printf("extracter: error for %v: %v", filename, err)
 		}
 	}
 
@@ -131,7 +134,7 @@ func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
 		case filename := <-inFiles:
 			err := s.processFile(filename)
 			if err != nil {
-				log.Printf("error extracting data from file %v: %v", filename, err)
+				log.Printf("extracter: error for %v: %v", filename, err)
 			}
 		}
 	}

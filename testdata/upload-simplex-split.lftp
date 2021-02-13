@@ -1,2 +1,2 @@
 open ftp://localhost:2121
-put 20200809-135900.pdf -o Receipt_001739.pdf
+put testdata/20200809-135900.pdf -o Receipt_001739.pdf

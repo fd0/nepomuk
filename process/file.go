@@ -179,20 +179,23 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 // document. The other file is searched for in the same directory. On success,
 // the sources files are removed.
 func TryJoinPages(filename string) (string, error) {
-	lastfile, err := FindLastFilename(filepath.Dir(filename), filepath.Base(filename))
+	dir := filepath.Dir(filename)
+	file := filepath.Base(filename)
+
+	lastfile, err := FindLastFilename(dir, file)
 	if err != nil {
-		return "", fmt.Errorf("find last file in %v: %w", filepath.Dir(filename), err)
+		return "", fmt.Errorf("find last file in %v for %v failed: %w", dir, file, err)
 	}
 
-	log.Printf("trying to join pages, filename %v, last %v", filename, lastfile)
+	log.Printf("trying to join pages with %v and %v", lastfile, file)
 
 	if !strings.HasSuffix(lastfile, "_duplex-odd.pdf") {
-		return "", fmt.Errorf("odd pages for %v not found", filename)
+		return "", fmt.Errorf("odd pages for %v not found", file)
 	}
 
-	combined, err := JoinPages(filepath.Dir(filename), lastfile, filepath.Base(filename))
+	combined, err := JoinPages(dir, lastfile, file)
 	if err != nil {
-		return "", fmt.Errorf("joining pages for %v and %v failed: %w", lastfile, filename, err)
+		return "", fmt.Errorf("joining pages for %v and %v failed: %w", lastfile, file, err)
 	}
 
 	return combined, nil

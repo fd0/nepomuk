@@ -21,7 +21,7 @@ import (
 func CheckTargetDir(dir string) error {
 	fi, err := os.Lstat(dir)
 	if os.IsNotExist(err) {
-		log.Printf("creating target dir %v", dir)
+		log.Printf("create target dir %v", dir)
 
 		err = os.MkdirAll(dir, 0755)
 		if err != nil {
@@ -153,14 +153,14 @@ func main() {
 
 	// receive files via FTP
 	wg.Go(func() error {
-		log.Printf("start FTP server on %v\n", opts.Listen)
+		log.Printf("ftp: start server on %v\n", opts.Listen)
 
 		srv := &ingest.FTPServer{
 			TargetDir: uploadedDir,
 			Verbose:   opts.Verbose,
 			Bind:      opts.Listen,
 			OnFileUpload: func(filename string) {
-				log.Printf("new file uploaded: %v", filepath.Base(filename))
+				log.Printf("ftp: new file uploaded: %v", filepath.Base(filename))
 				newFiles <- filename
 			},
 		}
@@ -170,11 +170,11 @@ func main() {
 
 	// watch for new files in incoming/
 	wg.Go(func() error {
-		log.Printf("watch for new files in %v", incomingDir)
+		log.Printf("ingester: watch for new files in %v", incomingDir)
 		watcher := &ingest.Watcher{
 			Dir: incomingDir,
 			OnNewFile: func(filename string) {
-				log.Printf("new file found: %v", filepath.Base(filename))
+				log.Printf("ingester: new file found: %v", filepath.Base(filename))
 				newFiles <- filename
 			},
 		}
@@ -210,12 +210,12 @@ func main() {
 
 	// watch archive directory and make sure files are in sync between the database and the filenames
 	wg.Go(func() error {
-		log.Printf("watch for moved or renamed files in %v", dataDir)
+		log.Printf("watcher: watch for moved or renamed files in %v", dataDir)
 
 		watcher := database.Watcher{
 			ArchiveDir: dataDir,
 			OnFileMoved: func(oldName, newName string) {
-				log.Printf("rename %v -> %v", oldName, newName)
+				log.Printf("watcher: rename %v -> %v", oldName, newName)
 			},
 		}
 

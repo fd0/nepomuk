@@ -23,7 +23,7 @@ type Processor struct {
 func (p *Processor) processFile(ctx context.Context, filename string) (string, error) {
 	// ignore first files of duplex documents (with the odd pages)
 	if strings.HasSuffix(filename, "_duplex-odd.pdf") {
-		log.Printf("%v: ignoring file with odd pages for now", filename)
+		log.Printf("process: ignoring file %v with odd pages for now", filepath.Base(filename))
 
 		return "", nil
 	}
@@ -35,13 +35,13 @@ func (p *Processor) processFile(ctx context.Context, filename string) (string, e
 			return "", fmt.Errorf("de-duplexing failed: %w", err)
 		}
 
-		log.Printf("joined file is at %v", sourcefile)
+		log.Printf("process: joined file is at %v", sourcefile)
 
 		// process the joined file name
 		return p.processFile(ctx, sourcefile)
 	}
 
-	log.Printf("running post-process for %v", filepath.Base(filename))
+	log.Printf("process: running post-process for %v", filepath.Base(filename))
 
 	processed, err := PostProcess(ctx, p.ProcessedDir, filename)
 	if err != nil {
@@ -64,7 +64,7 @@ func (p *Processor) Run(ctx context.Context, newFiles <-chan string) error {
 		case filename := <-newFiles:
 			processedFile, err := p.processFile(ctx, filename)
 			if err != nil {
-				log.Printf("process %v failed: %v", filepath.Base(filename), err)
+				log.Printf("process: %v failed: %v", filepath.Base(filename), err)
 
 				continue
 			}
