@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 )
 
 // DB is the serialized data structure of a database.
@@ -110,8 +111,26 @@ func (db *Database) SetFile(id string, a File) {
 }
 
 // Filename returns the filename based on the metadata.
-func (db *Database) Filename(id string) string {
-	return ""
+func (db *Database) Filename(id string) (string, error) {
+	file, ok := db.DB.Annotations[id]
+	if !ok {
+		return "", errors.New("id not found")
+	}
+
+	date, err := time.Parse("02.01.2006", file.Date)
+	if err != nil {
+		return "", fmt.Errorf("parse date %q failed: %w", file.Date, err)
+	}
+
+	filename := date.Format("2006-01-02")
+	if file.Title != "" {
+		filename += " " + file.Title
+	}
+
+	filename += " " + id
+	filename += ".pdf"
+
+	return filename, nil
 }
 
 // FileID returns the ID for filename.

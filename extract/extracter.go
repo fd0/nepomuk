@@ -24,15 +24,6 @@ type Extracter struct {
 	Correspondents []Correspondent
 }
 
-func generateFilename(id string, a database.File) (string, error) {
-	date, err := time.Parse("02.01.2006", a.Date)
-	if err != nil {
-		return "", fmt.Errorf("parse date %q failed: %w", a.Date, err)
-	}
-
-	return fmt.Sprintf("%s %s %s.pdf", date.Format("2006-01-02"), a.Title, id), nil
-}
-
 const (
 	newDirMode          = 0755
 	destinationFileMode = 0444
@@ -73,7 +64,7 @@ func (s *Extracter) processFile(filename string) error {
 
 	s.Database.SetFile(id, a)
 
-	newFilename, err := generateFilename(id, a)
+	newFilename, err := s.Database.Filename(id)
 	if err != nil {
 		return fmt.Errorf("generate filename for %v failed: %w", filename, err)
 	}
