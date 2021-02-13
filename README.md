@@ -21,15 +21,20 @@ The ID is used to look up the file in the `db.json` file, which contains additio
 
 # FTP Server
 
-For testing the FTP server, the script `upload.lftp` can be used to upload two
-PDF files with odd and even pages. The even pages are in reverse order. Sample
-files can be found in `testdata/`. The script is run like this:
+For testing the FTP server, the scripts named `upload-*.lftp` can be used. The
+scripts as well as some sample PDF files can be found in the `testdata/`
+directory.
 
-    lftp -f upload.lftp
+If two files with filenames starting with `duplex-odd` followed by
+`duplex-even` are uploaded, the archive will join them. This can be used to
+easily scan duplex documents with a simplex only scanner (e.g. with document
+feeder) by first scanning the odd pages, turning the whole paper stack around
+and scanning the even pages backwards. This means the even pages are in reverse
+order. The script `upload-duplex.lftp` tests this.
 
-In order for this to work, the file names must start with the strings
-`duplex-odd` and `duplex-even`, and the upload must happen in that order (first
-odd then even).
+PDF files with the prefix `Receipt` will be split into several documents with
+exactly one page per document. This is used to scan a stack of single page
+documents in one run.
 
 # TODO
 
