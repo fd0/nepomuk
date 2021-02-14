@@ -16,13 +16,18 @@ const defaultInotifyChanBuf = 20
 type Watcher struct {
 	ArchiveDir string
 
-	Log logrus.FieldLogger
+	log logrus.FieldLogger
 
 	// OnStartWatching is called when the watcher has subscribes to the directory change events
 	OnStartWatching func()
 
 	// OnFileMoved is called for each renamed file
 	OnFileMoved func(oldFilename, newFilename string)
+}
+
+// SetLogger updates the logger to use.
+func (w *Watcher) SetLogger(logger logrus.FieldLogger) {
+	w.log = logger.WithField("component", "database-watcher")
 }
 
 // Run starts a process which watches archiveDir for renames and provides a
@@ -37,9 +42,11 @@ func (w *Watcher) Run(ctx context.Context) error {
 	}
 
 	if w.OnStartWatching != nil {
-		w.Log.Debug("run hook OnStartWatching")
+		w.log.Debug("run hook OnStartWatching")
 		w.OnStartWatching()
 	}
+
+	w.log.Debugf("watch files in %v", w.ArchiveDir)
 
 	// For each renamed file we get two events: InMovedTo (new filename) and
 	// InMovedFrom (old filename), which are correlated by the same "Cookie"
@@ -79,6 +86,7 @@ outer:
 				continue
 			}
 
+			w.log.WithField("oldName", oldName).WithField("filename", newName).Info("rename detected")
 			w.OnFileMoved(oldName, newName)
 
 			// remove state

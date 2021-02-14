@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -33,7 +32,7 @@ func (p *Processor) processFile(ctx context.Context, filename string) (string, e
 
 	// ignore first files of duplex documents (with the odd pages)
 	if strings.HasSuffix(filename, "_duplex-odd.pdf") {
-		log.Infof("process: ignoring file %v with odd pages for now", filepath.Base(filename))
+		log.Info("ignore file with odd pages")
 
 		return "", nil
 	}
@@ -45,13 +44,13 @@ func (p *Processor) processFile(ctx context.Context, filename string) (string, e
 			return "", fmt.Errorf("de-duplexing failed: %w", err)
 		}
 
-		log.Infof("process: joined file is at %v", sourcefile)
+		log.Infof("joined file is at %v", sourcefile)
 
 		// process the joined file name
 		return p.processFile(ctx, sourcefile)
 	}
 
-	log.Infof("process: running post-process")
+	log.Infof("running post-process")
 
 	processed, err := PostProcess(ctx, p.ProcessedDir, filename)
 	if err != nil {

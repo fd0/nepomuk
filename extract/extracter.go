@@ -56,7 +56,7 @@ func (s *Extracter) processFile(filename string) error {
 	a.Correspondent, err = FindCorrespondent(s.Correspondents, text)
 
 	if err != nil {
-		log.Infof("find correspondent failed: %v", err)
+		log.Info(err)
 
 		a.Correspondent = ""
 	}

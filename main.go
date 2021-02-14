@@ -189,7 +189,6 @@ func main() {
 		watcher := &ingest.Watcher{
 			Dir: incomingDir,
 			OnNewFile: func(filename string) {
-				log.Printf("ingester: new file found: %v", filepath.Base(filename))
 				newFiles <- filename
 			},
 		}
@@ -230,19 +229,17 @@ func main() {
 
 	// watch archive directory and make sure files are in sync between the database and the filenames
 	wg.Go(func() error {
-		log.Printf("watcher: watch for moved or renamed files in %v", dataDir)
-
 		watcher := database.Watcher{
 			ArchiveDir: dataDir,
 			OnFileMoved: func(oldName, newName string) {
-				log.Printf("watcher: rename %v -> %v", oldName, newName)
-
 				err := db.OnRename(oldName, newName)
 				if err != nil {
-					log.Printf("watcher: rename failed: %v", err)
+					log.WithField("filename", newName).Warnf("rename failed: %w", err)
 				}
 			},
 		}
+
+		watcher.SetLogger(log)
 
 		return watcher.Run(ctx)
 	})

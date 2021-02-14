@@ -44,7 +44,11 @@ func (w *Watcher) Run(ctx context.Context) error {
 			return nil
 		default:
 		}
-		w.OnNewFile(filepath.Join(w.Dir, entry.Name()))
+
+		filename := filepath.Join(w.Dir, entry.Name())
+
+		w.log.WithField("filename", filename).Infof("found new file")
+		w.OnNewFile(filename)
 	}
 
 	ch := make(chan notify.EventInfo, defaultInotifyChanBuf)
@@ -55,7 +59,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 		return fmt.Errorf("inotify watch failed: %w", err)
 	}
 
-	w.log.Infof("watching for new files in %v", w.Dir)
+	w.log.Debugf("watch for new files in %v", w.Dir)
 
 outer:
 	for {
