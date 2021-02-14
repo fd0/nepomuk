@@ -242,7 +242,7 @@ func main() {
 		watcher := database.Watcher{
 			ArchiveDir: opts.BaseDir,
 			OnFileMoved: func(oldName, newName string) {
-				err := db.OnRename(oldName, newName)
+				err := db.OnRename(newName)
 				if err != nil {
 					log.WithField("filename", newName).Warnf("rename failed: %v", err)
 				}

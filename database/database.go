@@ -200,7 +200,7 @@ func (db *Database) scanSubdir(subdir string) error {
 		}
 
 		filename := filepath.Join(subdir, fi.Name())
-		err := db.OnRename("", filename)
+		err := db.OnRename(filename)
 		if err != nil {
 			db.log.Warnf("scan file %v failed: %v", filename, err)
 		}
@@ -261,7 +261,7 @@ func (db *Database) OnDelete(oldName string) error {
 }
 
 // OnRename updates the database when a file is renamed by the user.
-func (db *Database) OnRename(oldName, newName string) error {
+func (db *Database) OnRename(newName string) error {
 	// hash the file to get the ID
 	id, err := FileID(newName)
 	if err != nil {
