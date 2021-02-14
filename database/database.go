@@ -137,8 +137,6 @@ func (db *Database) Filename(id string) (string, error) {
 	if file.Title != "" {
 		filename += " " + file.Title
 	}
-
-	filename += " " + id
 	filename += ".pdf"
 
 	return filename, nil
@@ -146,18 +144,10 @@ func (db *Database) Filename(id string) (string, error) {
 
 // OnRename updates the database when a file is renamed by the user.
 func (db *Database) OnRename(oldName, newName string) error {
-	// try to extract id from filename
-	_, _, id, err := ParseFilename(filepath.Base(oldName))
-	if err != nil || id == "" {
-		// if that fails, hash the new file
-		id, err = FileID(newName)
-		if err != nil {
-			return fmt.Errorf("hash new filename failed: %w", err)
-		}
-	}
-
-	if id == "" {
-		return fmt.Errorf("extract id for %v failed", newName)
+	// hash the file to get the ID
+	id, err := FileID(newName)
+	if err != nil {
+		return fmt.Errorf("hash new filename failed: %w", err)
 	}
 
 	log := db.log.WithField("id", id)
@@ -165,7 +155,7 @@ func (db *Database) OnRename(oldName, newName string) error {
 	log.Debug("found ID")
 
 	// extract new metadata from new name
-	date, title, _, err := ParseFilename(filepath.Base(newName))
+	date, title, err := ParseFilename(filepath.Base(newName))
 	if err != nil {
 		return fmt.Errorf("parse new filename failed: %w", err)
 	}

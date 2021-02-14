@@ -8,32 +8,28 @@ func TestParseFilename(t *testing.T) {
 	tests := []struct {
 		filename string
 
-		date, id, title string
-		err             string
+		date, title string
+		err         string
 	}{
 		{
-			filename: "2003-01-02 foobar title string with spaces abf9c1b9.pdf",
+			filename: "2003-01-02 foobar title string with spaces.pdf",
 			date:     "02.01.2003",
 			title:    "foobar title string with spaces",
-			id:       "abf9c1b9",
 		},
 		{
-			filename: "2003-01-02 abf9c1b9.pdf",
+			filename: "2003-01-02 .pdf",
 			date:     "02.01.2003",
 			title:    "",
-			id:       "abf9c1b9",
 		},
 		{
 			filename: "2003-01-02 foo bar.pdf",
 			date:     "02.01.2003",
 			title:    "foo bar",
-			id:       "",
 		},
 		{
 			filename: "2003-01-02.pdf",
 			date:     "02.01.2003",
 			title:    "",
-			id:       "",
 		},
 		{
 			filename: "2003-01 abf9c1b9.pdf",
@@ -48,7 +44,7 @@ func TestParseFilename(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
 
-			date, title, id, err := ParseFilename(test.filename)
+			date, title, err := ParseFilename(test.filename)
 
 			// run checks if an error is expected
 			if test.err != "" {
@@ -73,10 +69,6 @@ func TestParseFilename(t *testing.T) {
 
 			if title != test.title {
 				t.Errorf("wrong title, want %q, got %q", test.title, title)
-			}
-
-			if id != test.id {
-				t.Errorf("wrong id, want %q, got %q", test.id, id)
 			}
 		})
 	}
