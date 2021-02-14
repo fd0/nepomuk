@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/rjeczalik/notify"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -14,6 +15,8 @@ const defaultInotifyChanBuf = 20
 // Watcher keeps track of file renames.
 type Watcher struct {
 	ArchiveDir string
+
+	Log logrus.FieldLogger
 
 	// OnStartWatching is called when the watcher has subscribes to the directory change events
 	OnStartWatching func()
@@ -34,6 +37,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 	}
 
 	if w.OnStartWatching != nil {
+		w.Log.Debug("run hook OnStartWatching")
 		w.OnStartWatching()
 	}
 

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/rjeczalik/notify"
+	"github.com/sirupsen/logrus"
 )
 
 // Watcher calls OnNewFile when a new file is placed in Dir.
@@ -14,9 +15,16 @@ type Watcher struct {
 	Dir string
 
 	OnNewFile func(filename string)
+
+	log logrus.FieldLogger
 }
 
 const defaultInotifyChanBuf = 20
+
+// SetLogger updates the logger to use.
+func (w *Watcher) SetLogger(logger logrus.FieldLogger) {
+	w.log = logger.WithField("component", "watcher")
+}
 
 // Run starts the watcher, it terminates when ctx is cancelled.
 func (w *Watcher) Run(ctx context.Context) error {
@@ -24,6 +32,10 @@ func (w *Watcher) Run(ctx context.Context) error {
 	entries, err := ioutil.ReadDir(w.Dir)
 	if err != nil {
 		return fmt.Errorf("readdir %v: %w", w.Dir, err)
+	}
+
+	if len(entries) > 0 {
+		w.log.Infof("process %d new files in %v", w.Dir)
 	}
 
 	for _, entry := range entries {
@@ -42,6 +54,8 @@ func (w *Watcher) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("inotify watch failed: %w", err)
 	}
+
+	w.log.Infof("watching for new files in %v", w.Dir)
 
 outer:
 	for {

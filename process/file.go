@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"strings"
 
 	pdfcpu "github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/sirupsen/logrus"
 )
 
 var filenameRegex = regexp.MustCompile(`^\d{8}-\d{6}(_duplex-odd|_duplex-even)?\.pdf$`)
@@ -178,7 +178,7 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 // TryJoinPages finds the matching file with odd pages and creates a joined
 // document. The other file is searched for in the same directory. On success,
 // the sources files are removed.
-func TryJoinPages(filename string) (string, error) {
+func TryJoinPages(log logrus.FieldLogger, filename string) (string, error) {
 	dir := filepath.Dir(filename)
 	file := filepath.Base(filename)
 

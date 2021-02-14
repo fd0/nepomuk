@@ -7,10 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // DB is the serialized data structure of a database.
@@ -20,6 +21,8 @@ type DB struct {
 
 type Database struct {
 	DB
+
+	log logrus.FieldLogger
 
 	// OnChange is called when the annotation for a file is changed.
 	OnChange func(id string, oldAnnotation, newAnnotation File) `yaml:"-"`
@@ -38,7 +41,13 @@ func New() *Database {
 		DB: DB{
 			Annotations: make(map[string]File),
 		},
+		log: logrus.StandardLogger(),
 	}
+}
+
+// SetLogger sets the logger the database will use.
+func (db *Database) SetLogger(logger logrus.FieldLogger) {
+	db.log = logger.WithField("component", "database")
 }
 
 // Load loads a database from file. If the file does not exist, an empty Database is returned.
@@ -151,7 +160,9 @@ func (db *Database) OnRename(oldName, newName string) error {
 		return fmt.Errorf("extract id for %v failed", newName)
 	}
 
-	log.Printf("ID for filename is %v", id)
+	log := db.log.WithField("id", id)
+
+	log.Debug("found ID")
 
 	// extract new metadata from new name
 	date, title, _, err := ParseFilename(filepath.Base(newName))
@@ -160,12 +171,12 @@ func (db *Database) OnRename(oldName, newName string) error {
 	}
 
 	file, _ := db.GetFile(id)
-	log.Printf("file before: %+v", file)
+	log.WithField("file", file).Debug("before")
 
 	file.Date = date
 	file.Title = title
 
-	log.Printf("file after: %+v", file)
+	log.WithField("file", file).Debug("after")
 
 	db.SetFile(id, file)
 

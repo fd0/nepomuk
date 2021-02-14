@@ -5,10 +5,11 @@ go 1.14
 require (
 	github.com/pdfcpu/pdfcpu v0.3.8
 	github.com/rjeczalik/notify v0.9.2
+	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/pflag v1.0.5
 	goftp.io/server v0.4.1
 	golang.org/x/image v0.0.0-20201208152932-35266b937fa6 // indirect
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20191005200804-aed5e4c7ecf9
+	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037
 	gopkg.in/yaml.v2 v2.4.0
 )

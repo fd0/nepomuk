@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -54,6 +55,7 @@ func TestFileRename(t *testing.T) {
 	found := make(chan RenameOp)
 	ready := make(chan struct{})
 	w := Watcher{
+		Log:        logrus.StandardLogger(),
 		ArchiveDir: tempdir,
 		OnFileMoved: func(oldname, newname string) {
 			found <- RenameOp{

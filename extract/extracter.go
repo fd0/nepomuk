@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/fd0/nepomuk/database"
+	"github.com/sirupsen/logrus"
 )
 
 const DirectoryUnknownCorrespondent = "unknown"
@@ -21,6 +21,8 @@ type Extracter struct {
 	ProcessedDir string
 	Database     *database.Database
 
+	log logrus.FieldLogger
+
 	Correspondents []Correspondent
 }
 
@@ -29,11 +31,18 @@ const (
 	destinationFileMode = 0444
 )
 
+// SetLogger updates the logger to use.
+func (s *Extracter) SetLogger(logger logrus.FieldLogger) {
+	s.log = logger.WithField("component", "extracter")
+}
+
 func (s *Extracter) processFile(filename string) error {
 	id, err := database.FileID(filename)
 	if err != nil {
 		return fmt.Errorf("ID for %v failed: %w", filename, err)
 	}
+
+	log := s.log.WithField("filename", filename).WithField("id", id)
 
 	text, err := Text(filename)
 	if err != nil {
@@ -47,20 +56,20 @@ func (s *Extracter) processFile(filename string) error {
 	a.Correspondent, err = FindCorrespondent(s.Correspondents, text)
 
 	if err != nil {
-		log.Printf("extracter: error for %v: %v", filename, err)
+		log.Infof("find correspondent failed: %v", err)
 
 		a.Correspondent = ""
 	}
 
 	a.Date, err = Date(filename, text)
 	if err != nil {
-		log.Printf("extracter: error for %v: %v", filename, err)
+		log.Infof("find date failed: %v, using today", err)
 
 		// use today's date for now
 		a.Date = time.Now().Format("02.01.2006")
 	}
 
-	log.Printf("extracter: data for %v (%v): %+v", filepath.Base(filename), id, a)
+	log.WithField("data", a).Print("found data")
 
 	s.Database.SetFile(id, a)
 
@@ -91,7 +100,7 @@ func (s *Extracter) processFile(filename string) error {
 		return fmt.Errorf("chmod %v failed: %w", newLocation, err)
 	}
 
-	log.Printf("extracter: move %v to %v", filepath.Base(filename), newLocation)
+	log.Printf("extracter: move to %v", newLocation)
 
 	return nil
 }
@@ -114,7 +123,7 @@ func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
 
 		err := s.processFile(filename)
 		if err != nil {
-			log.Printf("extracter: error for %v: %v", filename, err)
+			s.log.WithField("filename", filename).Warnf("error: %v", err)
 		}
 	}
 
@@ -125,7 +134,7 @@ func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
 		case filename := <-inFiles:
 			err := s.processFile(filename)
 			if err != nil {
-				log.Printf("extracter: error for %v: %v", filename, err)
+				s.log.WithField("filename", filename).Warnf("error: %v", err)
 			}
 		}
 	}

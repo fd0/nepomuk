@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/fd0/nepomuk/extract"
 	"github.com/fd0/nepomuk/ingest"
 	"github.com/fd0/nepomuk/process"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
 )
@@ -41,6 +41,8 @@ func CheckTargetDir(dir string) error {
 
 	return nil
 }
+
+var log *logrus.Logger
 
 // setupRootContext creates a root context that is cancelled when SIGINT is
 // received, tied to a new errgroup.Group. The returned cancel() function
@@ -96,8 +98,9 @@ func parseOptions() (opts Options) {
 }
 
 func main() {
-	// configure logging without any extra fields
-	log.SetFlags(0)
+	// configure logging
+	log = logrus.New()
+	log.SetLevel(logrus.TraceLevel)
 
 	// parse flags and fill global struct
 	opts := parseOptions()
@@ -132,8 +135,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	db.SetLogger(log)
+
 	db.OnChange = func(id string, oldAnnotation, newAnnotation database.File) {
-		log.Printf("database: data for file %v changed, saving database", id)
+		log.Infof("database: data for file %v changed, saving database", id)
 
 		err := db.Save(filepath.Join(opts.BaseDir, "db.json"))
 		if err != nil {
@@ -163,9 +168,9 @@ func main() {
 	newFiles := make(chan string, defaultChannelBufferSize)
 
 	// receive files via FTP
-	wg.Go(func() error {
-		log.Printf("ftp: start server on %v\n", opts.Listen)
+	ingest.SetLogger(log)
 
+	wg.Go(func() error {
 		srv := &ingest.FTPServer{
 			TargetDir: uploadedDir,
 			Verbose:   opts.Verbose,
@@ -181,7 +186,6 @@ func main() {
 
 	// watch for new files in incoming/
 	wg.Go(func() error {
-		log.Printf("ingester: watch for new files in %v", incomingDir)
 		watcher := &ingest.Watcher{
 			Dir: incomingDir,
 			OnNewFile: func(filename string) {
@@ -189,6 +193,7 @@ func main() {
 				newFiles <- filename
 			},
 		}
+		watcher.SetLogger(log)
 
 		return watcher.Run(ctx)
 	})
@@ -204,6 +209,8 @@ func main() {
 			},
 		}
 
+		processor.SetLogger(log)
+
 		return processor.Run(ctx, newFiles)
 	})
 
@@ -215,6 +222,8 @@ func main() {
 			ProcessedDir:   processedDir,
 			Correspondents: cfg.Correspondents,
 		}
+
+		extracter.SetLogger(log)
 
 		return extracter.Run(ctx, processedFiles)
 	})

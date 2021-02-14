@@ -6,15 +6,22 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"goftp.io/server/core"
 )
+
+var log logrus.FieldLogger = logrus.StandardLogger()
+
+// SetLogger updates the logger to use.
+func SetLogger(logger logrus.FieldLogger) {
+	log = logger.WithField("component", "ftp-server")
+}
 
 type fileinfo struct {
 	os.FileInfo
@@ -73,7 +80,7 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 	ext := filepath.Ext(path)
 
 	if ext != ".pdf" {
-		log.Printf("ftp: PutFile: rejecting invalid extension %q: %q", path, ext)
+		log.Printf("PutFile: rejecting invalid extension %q: %q", path, ext)
 
 		return -1, errors.New("invalid extension")
 	}
@@ -93,7 +100,7 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 
 	f, err := os.Create(filename)
 	if err != nil {
-		log.Printf("ftp: PutFile: create: %v", err)
+		log.Printf("PutFile: create: %v", err)
 
 		return 0, fmt.Errorf("create: %w", err)
 	}
@@ -103,14 +110,14 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 		_ = f.Close()
 		_ = os.Remove(f.Name())
 
-		log.Printf("ftp: PutFile: copy: %v", err)
+		log.Printf("PutFile: copy: %v", err)
 
 		return n, fmt.Errorf("copy: %w", err)
 	}
 
 	err = f.Close()
 	if err != nil {
-		log.Printf("ftp: PutFile: close: %v", err)
+		log.Printf("PutFile: close: %v", err)
 
 		return n, fmt.Errorf("close: %w", err)
 	}
@@ -149,6 +156,8 @@ type FTPServer struct {
 
 // Run starts the server. When ctx is canceled, the listener is stopped.
 func (srv *FTPServer) Run(ctx context.Context) error {
+	log.Debugf("start server on %v", srv.Bind)
+
 	// process all pre-existing files
 	entries, err := ioutil.ReadDir(srv.TargetDir)
 	if err != nil {
