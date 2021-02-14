@@ -79,7 +79,7 @@ type Options struct {
 
 func parseOptions() (opts Options) {
 	fs := pflag.NewFlagSet("nepomuk-ingester", pflag.ContinueOnError)
-	fs.StringVar(&opts.Config, "config", "config.yml", "load config from `config.yml`, path may be relative to base directory")
+	fs.StringVar(&opts.Config, "config", ".nepomuk/config.yml", "load config from `config.yml`, path may be relative to base directory")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
 	fs.StringVar(&opts.Listen, "listen", ":2121", "listen on `addr`")
 	fs.BoolVar(&opts.Verbose, "verbose", false, "print verbose messages")
@@ -151,12 +151,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	incomingDir := filepath.Join(opts.BaseDir, "incoming")
-	uploadedDir := filepath.Join(opts.BaseDir, "uploaded")
-	processedDir := filepath.Join(opts.BaseDir, "processed")
-	dataDir := filepath.Join(opts.BaseDir, "data")
+	incomingDir := filepath.Join(opts.BaseDir, ".nepomuk/incoming")
+	uploadedDir := filepath.Join(opts.BaseDir, ".nepomuk/uploaded")
+	processedDir := filepath.Join(opts.BaseDir, ".nepomuk/processed")
 
-	for _, dir := range []string{incomingDir, uploadedDir, processedDir, dataDir} {
+	for _, dir := range []string{incomingDir, uploadedDir, processedDir, opts.BaseDir} {
 		err = CheckTargetDir(dir)
 		if err != nil {
 			log.Fatal(err)
@@ -217,7 +216,7 @@ func main() {
 	wg.Go(func() error {
 		extracter := extract.Extracter{
 			Database:       db,
-			ArchiveDir:     dataDir,
+			ArchiveDir:     opts.BaseDir,
 			ProcessedDir:   processedDir,
 			Correspondents: cfg.Correspondents,
 		}
@@ -230,7 +229,7 @@ func main() {
 	// watch archive directory and make sure files are in sync between the database and the filenames
 	wg.Go(func() error {
 		watcher := database.Watcher{
-			ArchiveDir: dataDir,
+			ArchiveDir: opts.BaseDir,
 			OnFileMoved: func(oldName, newName string) {
 				err := db.OnRename(oldName, newName)
 				if err != nil {
