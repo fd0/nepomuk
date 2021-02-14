@@ -9,7 +9,6 @@ func TestParseFilename(t *testing.T) {
 		filename string
 
 		date, title string
-		err         string
 	}{
 		{
 			filename: "2003-01-02 foobar title string with spaces.pdf",
@@ -33,7 +32,7 @@ func TestParseFilename(t *testing.T) {
 		},
 		{
 			filename: "2003-01 abf9c1b9.pdf",
-			err:      "invalid file name",
+			title:    "2003-01 abf9c1b9",
 		},
 	}
 
@@ -45,20 +44,6 @@ func TestParseFilename(t *testing.T) {
 			t.Parallel()
 
 			date, title, err := ParseFilename(test.filename)
-
-			// run checks if an error is expected
-			if test.err != "" {
-				if err == nil {
-					t.Fatalf("expected error %q for filename %v not found, got nil", test.err, test.filename)
-				}
-
-				if err.Error() != test.err {
-					t.Fatalf("wrong error for filename %v returned: want %q, got %q", test.filename, test.err, err.Error())
-				}
-
-				return
-			}
-
 			if err != nil {
 				t.Fatal(err)
 			}

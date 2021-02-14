@@ -23,6 +23,9 @@ type Watcher struct {
 
 	// OnFileMoved is called for each renamed file
 	OnFileMoved func(oldFilename, newFilename string)
+
+	// OnFileDeleted is called for removed files.
+	OnFileDeleted func(oldFilename string)
 }
 
 // SetLogger updates the logger to use.
@@ -30,13 +33,16 @@ func (w *Watcher) SetLogger(logger logrus.FieldLogger) {
 	w.log = logger.WithField("component", "database-watcher")
 }
 
-// Run starts a process which watches archiveDir for renames and provides a
-// callback for such files.
+// Run starts a process which watches archiveDir for renames and deletions and
+// provides a callback for such files.
 func (w *Watcher) Run(ctx context.Context) error {
 	ch := make(chan notify.EventInfo, defaultInotifyChanBuf)
 
 	// recursively watch for events fired when files are moved or renamed
-	err := notify.Watch(filepath.Join(w.ArchiveDir, "..."), ch, notify.InMovedFrom, notify.InMovedTo)
+	err := notify.Watch(
+		filepath.Join(w.ArchiveDir, "..."),
+		ch,
+		notify.InMovedFrom, notify.InMovedTo, notify.InDelete)
 	if err != nil {
 		return fmt.Errorf("inotify watch failed: %w", err)
 	}
@@ -66,8 +72,16 @@ outer:
 
 			ev := evinfo.Sys().(*unix.InotifyEvent)
 
+			// ignore events in a subdir of .nepomuk, contains internal state
+			if filepath.Base(filepath.Dir(filepath.Dir(evinfo.Path()))) == ".nepomuk" {
+				continue
+			}
+
 			// keep state until we have collected both events
 			switch evinfo.Event() {
+			case notify.InDelete:
+				w.OnFileDeleted(evinfo.Path())
+				continue
 			case notify.InMovedFrom:
 				oldFilename[ev.Cookie] = evinfo.Path()
 			case notify.InMovedTo:

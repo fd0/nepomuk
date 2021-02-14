@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var filenameRegex = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}) ?(.*?)\.pdf$`)
+var filenameRegex = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2})? ?(.*?)\.pdf$`)
 
 var ErrInvalidFilename = errors.New("invalid file name")
 
@@ -32,10 +32,6 @@ func ParseFilename(filename string) (date, title string, err error) {
 		return "", "", ErrInvalidFilename
 	}
 
-	date, err = reformatDate(matches[1], "2006-01-02")
-	if err != nil {
-		return "", "", err
-	}
-
+	date, _ = reformatDate(matches[1], "2006-01-02")
 	return date, matches[2], nil
 }

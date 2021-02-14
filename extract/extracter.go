@@ -86,10 +86,11 @@ func (s *Extracter) processFile(filename string) error {
 
 		// if correspondent could be found, create dir and move the file there
 		// otherwise, move it to the "unknown" directory
-		newLocation := filepath.Join(s.ArchiveDir, DirectoryUnknownCorrespondent, newFilename)
-		if file.Correspondent != "" {
-			newLocation = filepath.Join(s.ArchiveDir, file.Correspondent, newFilename)
+		if file.Correspondent == "" {
+			file.Correspondent = DirectoryUnknownCorrespondent
 		}
+
+		newLocation := filepath.Join(s.ArchiveDir, file.Correspondent, newFilename)
 
 		err = os.MkdirAll(filepath.Dir(newLocation), newDirMode)
 		if err != nil {

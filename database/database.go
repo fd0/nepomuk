@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -21,6 +23,7 @@ type DB struct {
 
 type Database struct {
 	DB
+	Dir string
 
 	log logrus.FieldLogger
 
@@ -36,11 +39,12 @@ type File struct {
 }
 
 // New returns a new empty database.
-func New() *Database {
+func New(dir string) *Database {
 	return &Database{
 		DB: DB{
 			Annotations: make(map[string]File),
 		},
+		Dir: dir,
 		log: logrus.StandardLogger(),
 	}
 }
@@ -116,9 +120,93 @@ func (db *Database) SetFile(id string, a File) {
 	old := db.Annotations[id]
 	db.Annotations[id] = a
 
-	if db.OnChange != nil {
+	if db.OnChange != nil && old != a {
 		db.OnChange(id, old, a)
 	}
+}
+
+// Delete removes an entry from the database.
+func (db *Database) Delete(id string) {
+	old, ok := db.Annotations[id]
+	if !ok {
+		return
+	}
+
+	delete(db.Annotations, id)
+
+	if db.OnChange != nil {
+		db.OnChange(id, old, File{})
+	}
+}
+
+// Scan traverses the database directory and synchronizes it with the internal
+// database.
+func (db *Database) Scan() error {
+	db.log.Infof("synchronize database and files in %v", db.Dir)
+
+	// first, insert or update all files found in the dir
+	dirs, err := ioutil.ReadDir(db.Dir)
+	if err != nil {
+		return fmt.Errorf("readdir %v failed: %w", db.Dir, err)
+	}
+
+	for _, fi := range dirs {
+		if strings.HasPrefix(fi.Name(), ".") {
+			// ignore hidden entries
+			continue
+		}
+
+		if !fi.IsDir() {
+			continue
+		}
+
+		subdir := filepath.Join(db.Dir, fi.Name())
+		err := db.scanSubdir(subdir)
+		if err != nil {
+			db.log.Warnf("scan %v failed: %v", subdir, err)
+		}
+	}
+
+	// next, make sure all files in the db exist
+	for id, file := range db.DB.Annotations {
+		filename := filepath.Join(db.Dir, file.Correspondent, file.Filename)
+
+		_, err := os.Stat(filename)
+		if os.IsNotExist(err) {
+			db.log.Infof("delete removed file %v", filename)
+			db.Delete(id)
+		}
+	}
+
+	db.log.Info("successfully synchronized database")
+
+	return nil
+}
+
+func (db *Database) scanSubdir(subdir string) error {
+	files, err := ioutil.ReadDir(subdir)
+	if err != nil {
+		return fmt.Errorf("readdri %v failed: %w", subdir, err)
+	}
+
+	for _, fi := range files {
+		if !fi.Mode().IsRegular() {
+			continue
+		}
+
+		if !strings.HasSuffix(fi.Name(), ".pdf") {
+			db.log.Debugf("ignore non PDF file %v in %v", fi.Name(), subdir)
+			continue
+		}
+
+		filename := filepath.Join(subdir, fi.Name())
+		err := db.OnRename("", filename)
+		if err != nil {
+			db.log.Warnf("scan file %v failed: %v", filename, err)
+		}
+	}
+
+	return nil
 }
 
 // GenerateFilename returns the filename based on the metadata. The string rnd is
@@ -147,6 +235,31 @@ func (f File) String() string {
 	return fmt.Sprintf("<File %q from %q, date %v, title %q>", f.Filename, f.Correspondent, f.Date, f.Title)
 }
 
+// OnDelete updates the database when a file is deleted by the user.
+func (db *Database) OnDelete(oldName string) error {
+	// try to find the filename
+	filename := filepath.Base(oldName)
+	correspondent := filepath.Base(filepath.Dir(oldName))
+
+	log := db.log.WithField("filename", filename).WithField("correspondent", correspondent)
+
+	for id, file := range db.DB.Annotations {
+		if file.Correspondent != correspondent {
+			continue
+		}
+
+		if file.Filename != filename {
+			continue
+		}
+
+		log.Infof("delete file %v from database", id)
+		db.Delete(id)
+		return nil
+	}
+
+	return fmt.Errorf("unable to find file %v in database", oldName)
+}
+
 // OnRename updates the database when a file is renamed by the user.
 func (db *Database) OnRename(oldName, newName string) error {
 	// hash the file to get the ID
@@ -156,8 +269,6 @@ func (db *Database) OnRename(oldName, newName string) error {
 	}
 
 	log := db.log.WithField("id", id)
-
-	log.Debug("found ID")
 
 	// extract new metadata from new name
 	date, title, err := ParseFilename(filepath.Base(newName))
@@ -169,14 +280,17 @@ func (db *Database) OnRename(oldName, newName string) error {
 	correspondent := filepath.Base(filepath.Dir(newName))
 
 	file, _ := db.GetFile(id)
-	log.WithField("file", file).Debug("before")
+	fileBefore := file
 
 	file.Date = date
 	file.Title = title
 	file.Filename = filepath.Base(newName)
 	file.Correspondent = correspondent
 
-	log.WithField("file", file).Debug("after")
+	if fileBefore != file {
+		log.WithField("file", fileBefore).Debug("before")
+		log.WithField("file", file).Debug("after")
+	}
 
 	db.SetFile(id, file)
 

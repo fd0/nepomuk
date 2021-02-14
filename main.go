@@ -133,7 +133,23 @@ func main() {
 		log.Printf("loaded config from %v", opts.Config)
 	}
 
-	db := database.New()
+	err = CheckTargetDir(opts.BaseDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	incomingDir := filepath.Join(opts.BaseDir, ".nepomuk/incoming")
+	uploadedDir := filepath.Join(opts.BaseDir, ".nepomuk/uploaded")
+	processedDir := filepath.Join(opts.BaseDir, ".nepomuk/processed")
+
+	for _, dir := range []string{incomingDir, uploadedDir, processedDir, opts.BaseDir} {
+		err = CheckTargetDir(dir)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	db := database.New(opts.BaseDir)
 
 	err = db.Load(filepath.Join(opts.BaseDir, ".nepomuk/db.json"))
 	if err != nil {
@@ -152,20 +168,9 @@ func main() {
 		}
 	}
 
-	err = CheckTargetDir(opts.BaseDir)
+	err = db.Scan()
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	incomingDir := filepath.Join(opts.BaseDir, ".nepomuk/incoming")
-	uploadedDir := filepath.Join(opts.BaseDir, ".nepomuk/uploaded")
-	processedDir := filepath.Join(opts.BaseDir, ".nepomuk/processed")
-
-	for _, dir := range []string{incomingDir, uploadedDir, processedDir, opts.BaseDir} {
-		err = CheckTargetDir(dir)
-		if err != nil {
-			log.Fatal(err)
-		}
+		log.Warnf("db scan returned error: %v", err)
 	}
 
 	wg, ctx, cancel := setupRootContext()
@@ -239,7 +244,13 @@ func main() {
 			OnFileMoved: func(oldName, newName string) {
 				err := db.OnRename(oldName, newName)
 				if err != nil {
-					log.WithField("filename", newName).Warnf("rename failed: %w", err)
+					log.WithField("filename", newName).Warnf("rename failed: %v", err)
+				}
+			},
+			OnFileDeleted: func(oldName string) {
+				err := db.OnDelete(oldName)
+				if err != nil {
+					log.WithField("filename", oldName).Warnf("delete in database failed: %v", err)
 				}
 			},
 		}
