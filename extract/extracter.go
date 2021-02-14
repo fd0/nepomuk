@@ -11,6 +11,7 @@ import (
 
 	"github.com/fd0/nepomuk/database"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const DirectoryUnknownCorrespondent = "unknown"
@@ -49,58 +50,75 @@ func (s *Extracter) processFile(filename string) error {
 		return fmt.Errorf("extract text from %v failed: %w", filename, err)
 	}
 
-	a := database.File{
+	file := database.File{
 		Title: strings.TrimRight(filepath.Base(filename), ".pdf"),
 	}
 
-	a.Correspondent, err = FindCorrespondent(s.Correspondents, text)
+	file.Correspondent, err = FindCorrespondent(s.Correspondents, text)
 
 	if err != nil {
 		log.Info(err)
 
-		a.Correspondent = ""
+		file.Correspondent = ""
 	}
 
-	a.Date, err = Date(filename, text)
+	file.Date, err = Date(filename, text)
 	if err != nil {
 		log.Infof("find date failed: %v, using today", err)
 
 		// use today's date for now
-		a.Date = time.Now().Format("02.01.2006")
+		file.Date = time.Now().Format("02.01.2006")
 	}
 
-	log.WithField("data", a).Print("found data")
+	log.WithField("data", file).Print("found data")
 
-	s.Database.SetFile(id, a)
+	// try to find a unique name, just in case the file at the location already exists
+	for counter := 0; ; counter++ {
+		rnd := ""
+		if counter != 0 {
+			rnd = fmt.Sprintf("- %d", counter)
+		}
 
-	newFilename, err := s.Database.Filename(id)
-	if err != nil {
-		return fmt.Errorf("generate filename for %v failed: %w", filename, err)
+		newFilename, err := file.GenerateFilename(rnd)
+		if err != nil {
+			return fmt.Errorf("generate filename for %v failed: %w", filename, err)
+		}
+
+		// if correspondent could be found, create dir and move the file there
+		// otherwise, move it to the "unknown" directory
+		newLocation := filepath.Join(s.ArchiveDir, DirectoryUnknownCorrespondent, newFilename)
+		if file.Correspondent != "" {
+			newLocation = filepath.Join(s.ArchiveDir, file.Correspondent, newFilename)
+		}
+
+		err = os.MkdirAll(filepath.Dir(newLocation), newDirMode)
+		if err != nil {
+			return fmt.Errorf("unable to create dir for target file %v: %w", newLocation, err)
+		}
+
+		err = unix.Renameat2(unix.AT_FDCWD, filename, unix.AT_FDCWD, newLocation, unix.RENAME_NOREPLACE)
+		if os.IsExist(err) {
+			log.Warnf("destination file already exists, retrying with new filename")
+
+			continue
+		}
+
+		if err != nil {
+			return fmt.Errorf("move %v -> %v failed: %w", filename, newLocation, err)
+		}
+
+		file.Filename = newFilename
+		s.Database.SetFile(id, file)
+
+		err = os.Chmod(newLocation, destinationFileMode)
+		if err != nil {
+			return fmt.Errorf("chmod %v failed: %w", newLocation, err)
+		}
+
+		log.Printf("extracter: move to %v", newLocation)
+
+		break
 	}
-
-	// if correspondent could be found, create dir and move the file there
-	// otherwise, move it to the "unknown" directory
-	newLocation := filepath.Join(s.ArchiveDir, DirectoryUnknownCorrespondent, newFilename)
-	if a.Correspondent != "" {
-		newLocation = filepath.Join(s.ArchiveDir, a.Correspondent, newFilename)
-	}
-
-	err = os.MkdirAll(filepath.Dir(newLocation), newDirMode)
-	if err != nil {
-		return fmt.Errorf("unable to create dir for target file %v: %w", newLocation, err)
-	}
-
-	err = os.Rename(filename, newLocation)
-	if err != nil {
-		return fmt.Errorf("move %v -> %v failed: %w", filename, newLocation, err)
-	}
-
-	err = os.Chmod(newLocation, destinationFileMode)
-	if err != nil {
-		return fmt.Errorf("chmod %v failed: %w", newLocation, err)
-	}
-
-	log.Printf("extracter: move to %v", newLocation)
 
 	return nil
 }

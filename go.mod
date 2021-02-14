@@ -10,7 +10,7 @@ require (
 	goftp.io/server v0.4.1
 	golang.org/x/image v0.0.0-20201208152932-35266b937fa6 // indirect
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037
+	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 	google.golang.org/appengine v1.6.7
 	gopkg.in/yaml.v2 v2.4.0
 )

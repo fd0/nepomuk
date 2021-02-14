@@ -121,22 +121,23 @@ func (db *Database) SetFile(id string, a File) {
 	}
 }
 
-// Filename returns the filename based on the metadata.
-func (db *Database) Filename(id string) (string, error) {
-	file, ok := db.DB.Annotations[id]
-	if !ok {
-		return "", errors.New("id not found")
-	}
-
-	date, err := time.Parse("02.01.2006", file.Date)
+// GenerateFilename returns the filename based on the metadata. The string rnd is
+// appended to the title (before the extension) if it is not empty.
+func (f File) GenerateFilename(rnd string) (string, error) {
+	date, err := time.Parse("02.01.2006", f.Date)
 	if err != nil {
-		return "", fmt.Errorf("parse date %q failed: %w", file.Date, err)
+		return "", fmt.Errorf("parse date %q failed: %w", f.Date, err)
 	}
 
 	filename := date.Format("2006-01-02")
-	if file.Title != "" {
-		filename += " " + file.Title
+	if f.Title != "" {
+		filename += " " + f.Title
 	}
+
+	if rnd != "" {
+		filename += " " + rnd
+	}
+
 	filename += ".pdf"
 
 	return filename, nil
