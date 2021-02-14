@@ -143,6 +143,10 @@ func (f File) GenerateFilename(rnd string) (string, error) {
 	return filename, nil
 }
 
+func (f File) String() string {
+	return fmt.Sprintf("<File %q from %q, date %v, title %q>", f.Filename, f.Correspondent, f.Date, f.Title)
+}
+
 // OnRename updates the database when a file is renamed by the user.
 func (db *Database) OnRename(oldName, newName string) error {
 	// hash the file to get the ID
@@ -161,11 +165,16 @@ func (db *Database) OnRename(oldName, newName string) error {
 		return fmt.Errorf("parse new filename failed: %w", err)
 	}
 
+	// extract new correspondent
+	correspondent := filepath.Base(filepath.Dir(newName))
+
 	file, _ := db.GetFile(id)
 	log.WithField("file", file).Debug("before")
 
 	file.Date = date
 	file.Title = title
+	file.Filename = filepath.Base(newName)
+	file.Correspondent = correspondent
 
 	log.WithField("file", file).Debug("after")
 

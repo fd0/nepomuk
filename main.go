@@ -135,7 +135,7 @@ func main() {
 
 	db := database.New()
 
-	err = db.Load(filepath.Join(opts.BaseDir, "db.json"))
+	err = db.Load(filepath.Join(opts.BaseDir, ".nepomuk/db.json"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v", err)
 		os.Exit(1)
@@ -146,7 +146,7 @@ func main() {
 	db.OnChange = func(id string, oldAnnotation, newAnnotation database.File) {
 		log.Infof("database: data for file %v changed, saving database", id)
 
-		err := db.Save(filepath.Join(opts.BaseDir, "db.json"))
+		err := db.Save(filepath.Join(opts.BaseDir, ".nepomuk/db.json"))
 		if err != nil {
 			log.Printf("database: save error: %v", err)
 		}
