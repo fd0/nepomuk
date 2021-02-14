@@ -1,2 +1,4 @@
 nepomuk
 /archive
+config-devel-*.yml
+.envrc

@@ -78,8 +78,13 @@ type Options struct {
 }
 
 func parseOptions() (opts Options) {
+	defaultConfigPath, ok := os.LookupEnv("NEPOMUK_CONFIG")
+	if !ok {
+		defaultConfigPath = ".nepomuk/config.yml"
+	}
+
 	fs := pflag.NewFlagSet("nepomuk-ingester", pflag.ContinueOnError)
-	fs.StringVar(&opts.Config, "config", ".nepomuk/config.yml", "load config from `config.yml`, path may be relative to base directory")
+	fs.StringVar(&opts.Config, "config", defaultConfigPath, "load config from `config.yml`, path may be relative to base directory")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
 	fs.StringVar(&opts.Listen, "listen", ":2121", "listen on `addr`")
 	fs.BoolVar(&opts.Verbose, "verbose", false, "print verbose messages")
@@ -110,9 +115,10 @@ func main() {
 		configPath = filepath.Join(opts.BaseDir, configPath)
 	}
 
+	log.Debugf("load config from %v", configPath)
 	cfg, err := LoadConfig(configPath)
 	if errors.Is(err, os.ErrNotExist) {
-		log.Printf("no config.yml found at %v", configPath)
+		log.Printf("config at %v not found", configPath)
 
 		cfg = Config{}
 		err = nil
