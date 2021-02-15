@@ -1,13 +1,16 @@
 # Nepomuk PDF Archive
 
-This program implements an archive for scanned PDF documents. The directory structure is as follows:
+This program implements an archive for scanned PDF documents. Each PDF file has
+an auto-detected correspondent. For each correspondent a sub directory is
+created and the PDF files for that correspondent are saved in the sub directory.
+
+Within the subdir `.nepomuk`, additional files and directories are stored:
 
  * `incoming/` place new files here manually
  * `uploaded/` contains files uploaded via the FTP server
  * `processed/` holds files optimized and OCRed before sorting
  * `db.json` contains data about the individual files
- * `archive/` contains subdirs for each correspondent, which then contains the files
- * `config.yml` defines the matchers for the correspondents, among other things
+ * `config.yml` defines the matchers for the correspondents
 
 File names within `archive/Foo` (for correspondent called `Foo`) consist of the
 date (`YYYY-MM-DD`) followed by the title, with the extension `.pdf`, for
