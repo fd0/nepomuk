@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/rjeczalik/notify"
 	"github.com/sirupsen/logrus"
@@ -74,6 +75,11 @@ outer:
 
 			// ignore events in a subdir of .nepomuk, contains internal state
 			if filepath.Base(filepath.Dir(filepath.Dir(evinfo.Path()))) == ".nepomuk" {
+				continue
+			}
+
+			// ignore everything that's not a PDF file
+			if !strings.HasSuffix(evinfo.Path(), ".pdf") {
 				continue
 			}
 
