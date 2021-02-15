@@ -267,7 +267,7 @@ func main() {
 
 	log.Printf("save database before shutdown")
 
-	dberr := db.Save(filepath.Join(opts.BaseDir, "db.json"))
+	dberr := db.Save(filepath.Join(opts.BaseDir, ".nepomuk/db.json"))
 	if dberr != nil {
 		fmt.Fprintf(os.Stderr, "error saving database: %v", dberr)
 
