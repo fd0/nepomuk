@@ -23,7 +23,7 @@ func CheckTargetDir(dir string) error {
 	if os.IsNotExist(err) {
 		log.Printf("create target dir %v", dir)
 
-		err = os.MkdirAll(dir, 0755)
+		err = os.MkdirAll(dir, 0770)
 		if err != nil {
 			return fmt.Errorf("creating target dir %v: %w", dir, err)
 		}

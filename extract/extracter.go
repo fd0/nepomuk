@@ -28,8 +28,8 @@ type Extracter struct {
 }
 
 const (
-	newDirMode          = 0755
-	destinationFileMode = 0444
+	newDirMode          = 0770
+	destinationFileMode = 0440
 )
 
 // SetLogger updates the logger to use.
