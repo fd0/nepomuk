@@ -35,7 +35,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 	}
 
 	if len(entries) > 0 {
-		w.log.Infof("process %d new files in %v", w.Dir)
+		w.log.Infof("process %d new files in %v", len(entries), w.Dir)
 	}
 
 	for _, entry := range entries {
