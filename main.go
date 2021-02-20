@@ -106,6 +106,10 @@ func main() {
 	// configure logging
 	log = logrus.New()
 	log.SetLevel(logrus.TraceLevel)
+	log.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp: true,
+		DisableQuote:     true,
+	})
 
 	// parse flags and fill global struct
 	opts := parseOptions()

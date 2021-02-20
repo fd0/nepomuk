@@ -173,7 +173,7 @@ func (db *Database) Scan() error {
 
 		_, err := os.Stat(filename)
 		if os.IsNotExist(err) {
-			db.log.Infof("delete removed file %v", filename)
+			db.log.WithField("filename", filename).Info("delete removed file")
 			db.Delete(id)
 		}
 	}
