@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/rjeczalik/notify"
 	"github.com/sirupsen/logrus"
@@ -36,10 +37,18 @@ func (w *Watcher) SetLogger(logger logrus.FieldLogger) {
 // Run starts a process which watches archiveDir for renames and deletions and
 // provides a callback for such files.
 func (w *Watcher) Run(ctx context.Context) error {
+	abspath, err := filepath.Abs(w.ArchiveDir)
+	if err != nil {
+		return fmt.Errorf("unable to find absolute dir: %w", err)
+	}
+
+	absInternalPath := filepath.Clean(filepath.Join(abspath, ".nepomuk")) + "/"
+	absIncomingPath := filepath.Clean(filepath.Join(abspath, "incoming")) + "/"
+
 	ch := make(chan notify.EventInfo, defaultInotifyChanBuf)
 
 	// recursively watch for events fired when files are moved or renamed
-	err := notify.Watch(
+	err = notify.Watch(
 		filepath.Join(w.ArchiveDir, "..."),
 		ch,
 		notify.InMovedFrom, notify.InMovedTo, notify.InDelete)
@@ -72,12 +81,13 @@ outer:
 
 			ev := evinfo.Sys().(*unix.InotifyEvent)
 
-			w.log.Debugf("event for path %v: %v", evinfo.Path(), ev)
-
-			// ignore events in a subdir of .nepomuk, contains internal state
-			if filepath.Base(filepath.Dir(filepath.Dir(evinfo.Path()))) == ".nepomuk" {
+			// ignore events in an internal path or incoming
+			if strings.HasPrefix(evinfo.Path(), absInternalPath) || strings.HasPrefix(evinfo.Path(), absIncomingPath) {
+				w.log.Debugf("ignore event for path %v", evinfo.Path())
 				continue
 			}
+
+			w.log.Debugf("event for path %v", evinfo.Path())
 
 			// ignore events in incoming/, will be processed by the extracter
 			if filepath.Base(filepath.Dir(evinfo.Path())) == "incoming" {
