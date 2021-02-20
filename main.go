@@ -71,10 +71,11 @@ func setupRootContext() (wg *errgroup.Group, ctx context.Context, cancel func())
 const defaultChannelBufferSize = 20
 
 type Options struct {
-	Config  string
-	BaseDir string
-	Listen  string
-	Verbose bool
+	Config   string
+	BaseDir  string
+	Listen   string
+	LogLevel string
+	Verbose  bool
 }
 
 func parseOptions() (opts Options) {
@@ -87,6 +88,7 @@ func parseOptions() (opts Options) {
 	fs.StringVar(&opts.Config, "config", defaultConfigPath, "load config from `config.yml`, path may be relative to base directory")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
 	fs.StringVar(&opts.Listen, "listen", ":2121", "listen on `addr`")
+	fs.StringVar(&opts.LogLevel, "log-level", "debug", "set log level")
 	fs.BoolVar(&opts.Verbose, "verbose", false, "print verbose messages")
 
 	err := fs.Parse(os.Args)
@@ -103,16 +105,22 @@ func parseOptions() (opts Options) {
 }
 
 func main() {
+	// parse flags and fill global struct
+	opts := parseOptions()
+
 	// configure logging
 	log = logrus.New()
-	log.SetLevel(logrus.TraceLevel)
 	log.SetFormatter(&logrus.TextFormatter{
 		DisableTimestamp: true,
 		DisableQuote:     true,
 	})
 
-	// parse flags and fill global struct
-	opts := parseOptions()
+	level, err := logrus.ParseLevel(opts.LogLevel)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	log.SetLevel(level)
 
 	configPath := opts.Config
 	if !filepath.IsAbs(configPath) {
