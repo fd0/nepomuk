@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/rjeczalik/notify"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
-const defaultInotifyChanBuf = 20
+const defaultInotifyChanBuf = 200
 
 // Watcher keeps track of file renames.
 type Watcher struct {
@@ -73,6 +72,8 @@ outer:
 
 			ev := evinfo.Sys().(*unix.InotifyEvent)
 
+			w.log.Debugf("event for path %v: %v", evinfo.Path(), ev)
+
 			// ignore events in a subdir of .nepomuk, contains internal state
 			if filepath.Base(filepath.Dir(filepath.Dir(evinfo.Path()))) == ".nepomuk" {
 				continue
@@ -80,11 +81,6 @@ outer:
 
 			// ignore events in incoming/, will be processed by the extracter
 			if filepath.Base(filepath.Dir(evinfo.Path())) == "incoming" {
-				continue
-			}
-
-			// ignore everything that's not a PDF file
-			if !strings.HasSuffix(evinfo.Path(), ".pdf") {
 				continue
 			}
 

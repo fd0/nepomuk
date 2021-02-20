@@ -262,6 +262,39 @@ func (db *Database) OnDelete(oldName string) error {
 
 // OnRename updates the database when a file is renamed by the user.
 func (db *Database) OnRename(newName string) error {
+	// check if the new name is a file or dir
+	fi, err := os.Lstat(newName)
+	if err != nil {
+		return fmt.Errorf("lstat error: %w", err)
+	}
+
+	if fi.IsDir() {
+		// read the dir and trigger rename for all files
+		entries, err := ioutil.ReadDir(newName)
+		if err != nil {
+			return fmt.Errorf("readdir failed: %w", err)
+		}
+
+		var firstError error
+		for _, entry := range entries {
+			filename := filepath.Join(newName, entry.Name())
+			err = db.OnRename(filename)
+			if err != nil {
+				db.log.WithField("filename", filename).Warnf("rename failed: %w", err)
+				if firstError == nil {
+					firstError = err
+				}
+			}
+		}
+
+		return firstError
+	}
+
+	// ignore stuff and files that are not PDF files
+	if !fi.Mode().IsRegular() || !strings.HasSuffix(newName, ".pdf") {
+		return nil
+	}
+
 	// hash the file to get the ID
 	id, err := FileID(newName)
 	if err != nil {
