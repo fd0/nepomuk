@@ -68,7 +68,7 @@ func setupRootContext() (wg *errgroup.Group, ctx context.Context, cancel func())
 	return wg, ctx, cancel
 }
 
-const defaultChannelBufferSize = 20
+const defaultChannelBufferSize = 500
 
 type Options struct {
 	Config   string
