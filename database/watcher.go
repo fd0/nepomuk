@@ -78,6 +78,11 @@ outer:
 				continue
 			}
 
+			// ignore events in incoming/, will be processed by the extracter
+			if filepath.Base(filepath.Dir(evinfo.Path())) == "incoming" {
+				continue
+			}
+
 			// ignore everything that's not a PDF file
 			if !strings.HasSuffix(evinfo.Path(), ".pdf") {
 				continue

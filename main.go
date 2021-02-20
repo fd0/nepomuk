@@ -150,7 +150,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	incomingDir := filepath.Join(opts.BaseDir, ".nepomuk/incoming")
+	incomingDir := filepath.Join(opts.BaseDir, "incoming")
 	uploadedDir := filepath.Join(opts.BaseDir, ".nepomuk/uploaded")
 	processedDir := filepath.Join(opts.BaseDir, ".nepomuk/processed")
 
