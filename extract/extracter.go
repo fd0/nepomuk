@@ -116,7 +116,7 @@ func (s *Extracter) processFile(filename string) error {
 			return fmt.Errorf("chmod %v failed: %w", newLocation, err)
 		}
 
-		log.Printf("extracter: move to %v", newLocation)
+		s.log.WithField("filename", newLocation).WithField("id", id).Infof("new file")
 
 		break
 	}
