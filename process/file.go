@@ -210,8 +210,8 @@ func PostProcess(ctx context.Context, targetDir, filename string) (string, error
 		"ocrmypdf",
 		"--quiet", "--deskew", "--clean", "--clean-final",
 		"--language", "deu", // use Germany by default
-		"--skip-text",        // skip OCR for pages which already have text
-		"--remove-backgound", // try to make files smaller by removing the background
+		"--skip-text", // skip OCR for pages which already have text
+		// "--remove-backgound", // try to make files smaller by removing the background
 		filename, dest)
 	cmd.Stderr = os.Stderr
 
