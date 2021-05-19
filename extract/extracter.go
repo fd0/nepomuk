@@ -25,6 +25,9 @@ type Extracter struct {
 	log logrus.FieldLogger
 
 	Correspondents []Correspondent
+
+	// OnNewFile is called when a new file is found
+	OnNewFile func(database.File)
 }
 
 const (
@@ -117,6 +120,10 @@ func (s *Extracter) processFile(filename string) error {
 		}
 
 		s.log.WithField("filename", newLocation).WithField("id", id).Infof("new file")
+
+		if s.OnNewFile != nil {
+			s.OnNewFile(file)
+		}
 
 		break
 	}
