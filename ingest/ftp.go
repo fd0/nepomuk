@@ -209,6 +209,11 @@ func (srv *FTPServer) Run(ctx context.Context) error {
 
 		return err
 	case <-ctx.Done():
-		return listener.Close()
+		err := listener.Close()
+		if err != nil {
+			return fmt.Errorf("listen: %w", listener.Close())
+		}
+
+		return nil
 	}
 }

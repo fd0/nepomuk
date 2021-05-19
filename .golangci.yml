@@ -10,8 +10,7 @@ linters:
     - paralleltest
     - ifshort
     - gomnd
-    # - maligned
-    # - prealloc
+    - thelper
 
   # disable-all: false
   # presets:
@@ -39,3 +38,7 @@ linters-settings:
     # 'default' case is present, even if all enum members aren't listed in the
     # switch
     default-signifies-exhaustive: true
+
+  cyclop:
+    # the maximal code complexity to report
+    max-complexity: 20

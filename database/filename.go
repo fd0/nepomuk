@@ -33,5 +33,6 @@ func ParseFilename(filename string) (date, title string, err error) {
 	}
 
 	date, _ = reformatDate(matches[1], "2006-01-02")
+
 	return date, matches[2], nil
 }

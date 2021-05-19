@@ -161,6 +161,7 @@ func (db *Database) Scan() error {
 		}
 
 		subdir := filepath.Join(db.Dir, fi.Name())
+
 		err := db.scanSubdir(subdir)
 		if err != nil {
 			db.log.Warnf("scan %v failed: %v", subdir, err)
@@ -196,10 +197,12 @@ func (db *Database) scanSubdir(subdir string) error {
 
 		if !strings.HasSuffix(fi.Name(), ".pdf") {
 			db.log.Debugf("ignore non PDF file %v in %v", fi.Name(), subdir)
+
 			continue
 		}
 
 		filename := filepath.Join(subdir, fi.Name())
+
 		err := db.OnRename(filename)
 		if err != nil {
 			db.log.Warnf("scan file %v failed: %v", filename, err)
@@ -254,6 +257,7 @@ func (db *Database) OnDelete(oldName string) error {
 
 		log.Infof("delete file %v from database", id)
 		db.Delete(id)
+
 		return nil
 	}
 
@@ -276,11 +280,14 @@ func (db *Database) OnRename(newName string) error {
 		}
 
 		var firstError error
+
 		for _, entry := range entries {
 			filename := filepath.Join(newName, entry.Name())
+
 			err = db.OnRename(filename)
 			if err != nil {
 				db.log.WithField("filename", filename).Warnf("rename failed: %v", err)
+
 				if firstError == nil {
 					firstError = err
 				}

@@ -79,11 +79,15 @@ outer:
 				return nil
 			}
 
-			ev := evinfo.Sys().(*unix.InotifyEvent)
+			ev, ok := evinfo.Sys().(*unix.InotifyEvent)
+			if !ok {
+				w.log.Warnf("received event is not *unix.InotifyEvent but %T: %v", evinfo, evinfo)
+			}
 
 			// ignore events in an internal path or incoming
 			if strings.HasPrefix(evinfo.Path(), absInternalPath) || strings.HasPrefix(evinfo.Path(), absIncomingPath) {
 				w.log.Debugf("ignore event for path %v", evinfo.Path())
+
 				continue
 			}
 
@@ -98,6 +102,7 @@ outer:
 			switch evinfo.Event() {
 			case notify.InDelete:
 				w.OnFileDeleted(evinfo.Path())
+
 				continue
 			case notify.InMovedFrom:
 				oldFilename[ev.Cookie] = evinfo.Path()

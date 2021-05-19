@@ -120,6 +120,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+
 	log.SetLevel(level)
 
 	configPath := opts.Config
@@ -128,6 +129,7 @@ func main() {
 	}
 
 	log.Debugf("load config from %v", configPath)
+
 	cfg, err := LoadConfig(configPath)
 	if errors.Is(err, os.ErrNotExist) {
 		log.Printf("config at %v not found", configPath)
