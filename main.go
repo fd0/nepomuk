@@ -11,6 +11,7 @@ import (
 	"github.com/fd0/nepomuk/database"
 	"github.com/fd0/nepomuk/extract"
 	"github.com/fd0/nepomuk/ingest"
+	"github.com/fd0/nepomuk/notify"
 	"github.com/fd0/nepomuk/process"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -244,6 +245,9 @@ func main() {
 			ArchiveDir:     opts.BaseDir,
 			ProcessedDir:   processedDir,
 			Correspondents: cfg.Correspondents,
+			OnNewFile: func(file database.File) {
+				notify.Notify(log, file)
+			},
 		}
 
 		extracter.SetLogger(log)

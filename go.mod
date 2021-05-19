@@ -3,6 +3,7 @@ module github.com/fd0/nepomuk
 go 1.14
 
 require (
+	github.com/gregdel/pushover v1.1.0 // indirect
 	github.com/pdfcpu/pdfcpu v0.3.8
 	github.com/rjeczalik/notify v0.9.2
 	github.com/sirupsen/logrus v1.7.0
