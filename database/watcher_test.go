@@ -55,7 +55,7 @@ func TestFileRename(t *testing.T) {
 	found := make(chan RenameOp)
 	ready := make(chan struct{})
 	w := Watcher{
-		Log:        logrus.StandardLogger(),
+		log:        logrus.StandardLogger(),
 		ArchiveDir: tempdir,
 		OnFileMoved: func(oldname, newname string) {
 			found <- RenameOp{

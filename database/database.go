@@ -280,7 +280,7 @@ func (db *Database) OnRename(newName string) error {
 			filename := filepath.Join(newName, entry.Name())
 			err = db.OnRename(filename)
 			if err != nil {
-				db.log.WithField("filename", filename).Warnf("rename failed: %w", err)
+				db.log.WithField("filename", filename).Warnf("rename failed: %v", err)
 				if firstError == nil {
 					firstError = err
 				}
