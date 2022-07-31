@@ -79,13 +79,15 @@ type Options struct {
 	Verbose  bool
 }
 
-func parseOptions() (opts Options) {
+func main() {
+	var opts Options
+
 	defaultConfigPath, ok := os.LookupEnv("NEPOMUK_CONFIG")
 	if !ok {
 		defaultConfigPath = ".nepomuk/config.yml"
 	}
 
-	fs := pflag.NewFlagSet("nepomuk-ingester", pflag.ContinueOnError)
+	fs := pflag.NewFlagSet("nepomuk", pflag.ContinueOnError)
 	fs.StringVar(&opts.Config, "config", defaultConfigPath, "load config from `config.yml`, path may be relative to base directory")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
 	fs.StringVar(&opts.Listen, "listen", ":2121", "listen on `addr`")
@@ -102,13 +104,14 @@ func parseOptions() (opts Options) {
 		os.Exit(1)
 	}
 
-	return opts
+	err = run(opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
 }
 
-func main() {
-	// parse flags and fill global struct
-	opts := parseOptions()
-
+func run(opts Options) error {
 	// configure logging
 	log = logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
@@ -118,8 +121,7 @@ func main() {
 
 	level, err := logrus.ParseLevel(opts.LogLevel)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
 	log.SetLevel(level)
@@ -140,8 +142,7 @@ func main() {
 	}
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
 	if opts.Verbose {
@@ -150,7 +151,7 @@ func main() {
 
 	err = CheckTargetDir(opts.BaseDir)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	incomingDir := filepath.Join(opts.BaseDir, "incoming")
@@ -160,7 +161,7 @@ func main() {
 	for _, dir := range []string{incomingDir, uploadedDir, processedDir, opts.BaseDir} {
 		err = CheckTargetDir(dir)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 
@@ -281,23 +282,18 @@ func main() {
 	// wait for all processes to complete
 	err = wg.Wait()
 
-	exitCode := 0
-
 	log.Printf("save database before shutdown")
 
 	dberr := db.Save(filepath.Join(opts.BaseDir, ".nepomuk/db.json"))
 	if dberr != nil {
 		fmt.Fprintf(os.Stderr, "error saving database: %v", dberr)
 
-		exitCode = 1
-	}
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-
-		exitCode = 1
+		if err == nil {
+			err = dberr
+		}
 	}
 
 	cancel()
-	os.Exit(exitCode)
+
+	return err
 }
