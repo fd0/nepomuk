@@ -74,7 +74,7 @@ func (driver) GetFile(string, int64) (int64, io.ReadCloser, error) {
 	return 0, nil, errors.New("not implemented")
 }
 
-const filenameFormat = "20060102-150405"
+const UploadFilenameTimeFormat = "20060102-150405"
 
 func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, error) {
 	ext := filepath.Ext(path)
@@ -95,7 +95,7 @@ func (d driver) PutFile(path string, rd io.Reader, appendData bool) (int64, erro
 		suffix = "_duplex-even"
 	}
 
-	name := time.Now().Format(filenameFormat) + suffix + ext
+	name := time.Now().Format(UploadFilenameTimeFormat) + suffix + ext
 	filename := filepath.Join(d.targetdir, name)
 
 	f, err := os.Create(filename)

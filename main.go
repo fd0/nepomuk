@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"time"
 
 	"github.com/fd0/nepomuk/database"
 	"github.com/fd0/nepomuk/extract"
@@ -15,6 +18,7 @@ import (
 	"github.com/fd0/nepomuk/process"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"golang.org/x/net/webdav"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -72,11 +76,12 @@ func setupRootContext() (wg *errgroup.Group, ctx context.Context, cancel func())
 const defaultChannelBufferSize = 500
 
 type Options struct {
-	Config   string
-	BaseDir  string
-	Listen   string
-	LogLevel string
-	Verbose  bool
+	Config       string
+	BaseDir      string
+	ListenFTP    string
+	ListenWebDAV string
+	LogLevel     string
+	Verbose      bool
 }
 
 func main() {
@@ -90,7 +95,8 @@ func main() {
 	fs := pflag.NewFlagSet("nepomuk", pflag.ContinueOnError)
 	fs.StringVar(&opts.Config, "config", defaultConfigPath, "load config from `config.yml`, path may be relative to base directory")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
-	fs.StringVar(&opts.Listen, "listen", ":2121", "listen on `addr`")
+	fs.StringVar(&opts.ListenFTP, "listen-ftp", ":2121", "run FTP server on `addr:port`")
+	fs.StringVar(&opts.ListenWebDAV, "listen-webdav", ":8080", "run WebDAV-Server on `addr:port`")
 	fs.StringVar(&opts.LogLevel, "log-level", "debug", "set log level")
 	fs.BoolVar(&opts.Verbose, "verbose", false, "print verbose messages")
 
@@ -200,7 +206,7 @@ func run(opts Options) error {
 		srv := &ingest.FTPServer{
 			TargetDir: uploadedDir,
 			Verbose:   opts.Verbose,
-			Bind:      opts.Listen,
+			Bind:      opts.ListenFTP,
 			OnFileUpload: func(filename string) {
 				log.Printf("ftp: new file uploaded: %v", filepath.Base(filename))
 				newFiles <- filename
@@ -208,6 +214,72 @@ func run(opts Options) error {
 		}
 
 		return srv.Run(ctx)
+	})
+
+	wg.Go(func() error {
+		log := log.WithField("component", "webdav-server")
+
+		log.Debugf("start on %v", opts.ListenWebDAV)
+
+		var logRequest func(*http.Request, error)
+		if log.Level >= logrus.DebugLevel {
+			logRequest = func(req *http.Request, err error) {
+				log.Printf("%v %v -> %v", req.Method, req.URL.Path, err)
+			}
+		}
+
+		handler := &webdav.Handler{
+			FileSystem: &ingest.UploadOnlyFS{
+				Log: log,
+				Create: func(name string) (io.WriteCloser, error) {
+					filename := time.Now().Format(ingest.UploadFilenameTimeFormat) + ".pdf"
+
+					f, err := os.OpenFile(filepath.Join(uploadedDir, filename), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+					if err != nil {
+						log.Debugf("create new file failed: %v", err)
+
+						return nil, fmt.Errorf("create file: %w", err)
+					}
+
+					return f, nil
+				},
+			},
+			LockSystem: webdav.NewMemLS(),
+			Logger:     logRequest,
+		}
+
+		server := http.Server{
+			Addr:    opts.ListenWebDAV,
+			Handler: handler,
+		}
+
+		// ensure cancelling the context stops the server
+		wg.Go(func() error {
+			<-ctx.Done()
+			log.Debugf("shutdown webdav server")
+
+			// pass a cancelled context to Shutdown so it terminates directly
+			ctx, cancel := context.WithCancel(ctx)
+			cancel()
+
+			err := server.Shutdown(ctx)
+			if err != nil {
+				return fmt.Errorf("shutdown webdav server: %w", err)
+			}
+
+			return nil
+		})
+
+		err := server.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			err = nil
+		}
+
+		if err != nil {
+			return fmt.Errorf("listen webdav: %w", err)
+		}
+
+		return nil
 	})
 
 	// watch for new files in incoming/

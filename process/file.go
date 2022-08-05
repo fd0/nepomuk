@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -206,6 +207,8 @@ func TryJoinPages(log logrus.FieldLogger, filename string) (string, error) {
 func PostProcess(ctx context.Context, targetDir, filename string) (string, error) {
 	dest := filepath.Join(targetDir, filepath.Base(filename))
 
+	stderr := bytes.NewBuffer(nil)
+
 	cmd := exec.CommandContext(ctx,
 		"ocrmypdf",
 		"--quiet", "--deskew", "--clean", "--clean-final",
@@ -213,11 +216,11 @@ func PostProcess(ctx context.Context, targetDir, filename string) (string, error
 		"--skip-text", // skip OCR for pages which already have text
 		// "--remove-backgound", // try to make files smaller by removing the background
 		filename, dest)
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = stderr
 
 	err := cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("run ocrmypdf: %w", err)
+		return "", fmt.Errorf("run ocrmypdf: %w, stderr: %v", err, stderr.String())
 	}
 
 	return dest, nil

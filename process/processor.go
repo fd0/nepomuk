@@ -71,6 +71,8 @@ func (p *Processor) Run(ctx context.Context, newFiles <-chan string) error {
 		case <-ctx.Done():
 			return nil
 		case filename := <-newFiles:
+			p.log.WithField("filename", filename).Info("start process")
+
 			processedFile, err := p.processFile(ctx, filename)
 			if err != nil {
 				p.log.WithField("filename", filename).Warnf("process failed: %v", err)
