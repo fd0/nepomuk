@@ -234,12 +234,14 @@ func run(opts Options) error {
 				Create: func(name string) (io.WriteCloser, error) {
 					filename := time.Now().Format(ingest.UploadFilenameTimeFormat) + ".pdf"
 
-					f, err := os.OpenFile(filepath.Join(uploadedDir, filename), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+					f, err := os.OpenFile(filepath.Join(incomingDir, filename), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 					if err != nil {
 						log.Debugf("create new file failed: %v", err)
 
 						return nil, fmt.Errorf("create file: %w", err)
 					}
+
+					log.Infof("upload file %v as %v", name, filename)
 
 					return f, nil
 				},

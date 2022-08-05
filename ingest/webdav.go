@@ -194,8 +194,6 @@ func (fs *UploadOnlyFS) OpenFile(ctx context.Context, name string, flag int, per
 			maxSize = DefaultMaxFileSize
 		}
 
-		fs.Log.Infof("upload file %v", name)
-
 		f, err := fs.Create(name)
 		if err != nil {
 			return nil, fmt.Errorf("create new file: %w", err)
