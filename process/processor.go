@@ -50,11 +50,11 @@ func (p *Processor) processFile(ctx context.Context, filename string) (string, e
 		return p.processFile(ctx, sourcefile)
 	}
 
-	log.Infof("running post-process")
+	log.Infof("start post-process")
 
-	processed, err := PostProcess(ctx, p.ProcessedDir, filename)
+	processed, err := PostProcess(ctx, p.log, p.ProcessedDir, filename)
 	if err != nil {
-		return "", fmt.Errorf("post-processing: %w", err)
+		return "", fmt.Errorf("post-process: %w", err)
 	}
 
 	err = os.Remove(filename)

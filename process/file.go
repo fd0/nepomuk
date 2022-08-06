@@ -204,7 +204,23 @@ func TryJoinPages(log logrus.FieldLogger, filename string) (string, error) {
 
 // PostProcess runs OCR and optimizations on filename. On success, the file is
 // written to targetDir.
-func PostProcess(ctx context.Context, targetDir, filename string) (string, error) {
+func PostProcess(ctx context.Context, log logrus.FieldLogger, targetDir, filename string) (string, error) {
+	fi, err := os.Lstat(filename)
+	if err != nil {
+		return "", fmt.Errorf("stat: %w", err)
+	}
+
+	if !fi.Mode().IsRegular() {
+		return "", fmt.Errorf("file %v is not regular file, mode: %v", filename, fi.Mode())
+	}
+
+	// ignore files of size zero
+	if fi.Size() == 0 {
+		log.Infof("ignore empty file %v", filename)
+
+		return "", nil
+	}
+
 	dest := filepath.Join(targetDir, filepath.Base(filename))
 
 	stderr := bytes.NewBuffer(nil)
@@ -218,7 +234,7 @@ func PostProcess(ctx context.Context, targetDir, filename string) (string, error
 		filename, dest)
 	cmd.Stderr = stderr
 
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return "", fmt.Errorf("run ocrmypdf: %w, stderr: %v", err, stderr.String())
 	}
