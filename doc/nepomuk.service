@@ -1,0 +1,19 @@
+[Unit]
+Description = Nepomuk Archive System
+After = network-online.target srv-data.mount
+Wants = network-online.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStart = /usr/local/bin/nepomuk --base-dir /path/to/archive --listen-ftp :21 --listen-webdav :8080 --log-level info
+User = nepomuk
+Group = nepomuk
+
+# allow the service to bind low ports
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# make sure $HOME is set, otherwise the embedded pdfcpu quits the process :(
+RuntimeDirectory = nepomuk
+Environment = HOME=/run/nepomuk
