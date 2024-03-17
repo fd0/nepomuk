@@ -78,9 +78,7 @@ func setupRootContext() (wg *errgroup.Group, ctx context.Context, cancel func())
 const defaultChannelBufferSize = 500
 
 type Options struct {
-	Config       string
 	BaseDir      string
-	ListenFTP    string
 	ListenWebDAV string
 	LogLevel     string
 	Verbose      bool
@@ -89,13 +87,7 @@ type Options struct {
 func main() {
 	var opts Options
 
-	defaultConfigPath, ok := os.LookupEnv("NEPOMUK_CONFIG")
-	if !ok {
-		defaultConfigPath = ".nepomuk/config.yml"
-	}
-
 	fs := pflag.NewFlagSet("nepomuk", pflag.ContinueOnError)
-	fs.StringVar(&opts.Config, "config", defaultConfigPath, "load config from `config.yml`, path may be relative to base directory")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
 	fs.StringVar(&opts.ListenWebDAV, "listen-webdav", ":8080", "run WebDAV-Server on `addr:port`")
 	fs.StringVar(&opts.LogLevel, "log-level", "debug", "set log level")
@@ -132,29 +124,6 @@ func run(opts Options) error {
 	}
 
 	log.SetLevel(level)
-
-	configPath := opts.Config
-	if !filepath.IsAbs(configPath) {
-		configPath = filepath.Join(opts.BaseDir, configPath)
-	}
-
-	log.Debugf("load config from %v", configPath)
-
-	cfg, err := LoadConfig(configPath)
-	if errors.Is(err, os.ErrNotExist) {
-		log.Printf("config at %v not found", configPath)
-
-		cfg = Config{}
-		err = nil
-	}
-
-	if err != nil {
-		return err
-	}
-
-	if opts.Verbose {
-		log.Printf("loaded config from %v", opts.Config)
-	}
 
 	err = CheckTargetDir(opts.BaseDir)
 	if err != nil {
@@ -302,7 +271,7 @@ func run(opts Options) error {
 			Database:       db,
 			ArchiveDir:     opts.BaseDir,
 			ProcessedDir:   processedDir,
-			Correspondents: cfg.Correspondents,
+			Correspondents: []extract.Correspondent{},
 			OnNewFile: func(file database.File) {
 				notify.Notify(log, file)
 			},

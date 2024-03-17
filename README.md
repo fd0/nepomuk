@@ -9,7 +9,6 @@ Within the subdir `.nepomuk`, additional files and directories are stored:
  * `incoming/` place new files here manually
  * `processed/` holds files optimized and OCRed before sorting
  * `db.json` contains data about the individual files
- * `config.yml` defines the matchers for the correspondents
 
 File names within `archive/Foo` (for correspondent called `Foo`) consist of the
 date (`YYYY-MM-DD`) followed by the title, with the extension `.pdf`, for
@@ -34,7 +33,3 @@ order. The script `upload-duplex.lftp` tests this.
 PDF files with the prefix `Receipt` will be split into several documents with
 exactly one page per document. This is used to scan a stack of single page
 documents in one run.
-
-# TODO
-
- * Reload `config.yml` automatically
