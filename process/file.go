@@ -61,7 +61,6 @@ func PostProcess(ctx context.Context, log logrus.FieldLogger, targetDir, filenam
 
 	cmd := exec.CommandContext(ctx,
 		"ocrmypdf",
-		// "--quiet",
 		"--deskew", "--clean", "--clean-final",
 		"--language", "deu", // use Germany by default
 		"--skip-text", // skip OCR for pages which already have text
