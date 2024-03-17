@@ -71,8 +71,6 @@ outer:
 				return nil
 			}
 
-			w.log.Debugf("new file: %v, %#v", ev.Path(), ev)
-
 			w.OnNewFile(ev.Path())
 		}
 	}

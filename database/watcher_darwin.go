@@ -60,7 +60,7 @@ outer:
 
 			ev, ok := evinfo.Sys().(*notify.FSEvent)
 			if !ok {
-				w.log.Warnf("received event is not *unix.InotifyEvent but %T: %v", evinfo, evinfo)
+				w.log.Warnf("received event is not *unix.FSEvent but %T: %v", evinfo, evinfo)
 			}
 
 			// ignore events in an internal path or incoming
@@ -69,8 +69,6 @@ outer:
 
 				continue
 			}
-
-			w.log.Debugf("event for path %v, flags 0x%08x", evinfo.Path(), ev.Flags)
 
 			// ignore events in incoming/, will be processed by the extracter
 			if filepath.Base(filepath.Dir(evinfo.Path())) == "incoming" {
@@ -84,10 +82,11 @@ outer:
 
 			switch evinfo.Event() {
 			case notify.FSEventsCreated:
-				w.log.Debugf("create detected")
+				w.log.Debugf("create detected for %v", evinfo.Path())
+				w.OnFileRenamed(evinfo.Path())
 
 			case notify.FSEventsRemoved:
-				w.log.Debugf("remove detected")
+				w.log.Debugf("remove detected for %v", evinfo.Path())
 				w.OnFileDeleted(evinfo.Path())
 
 			case notify.FSEventsRenamed:
@@ -98,7 +97,7 @@ outer:
 					continue
 				}
 
-				w.log.Debugf("rename detected, new name is %v", evinfo.Path())
+				w.log.Debugf("rename detected, new name: %v", evinfo.Path())
 				w.OnFileRenamed(evinfo.Path())
 
 			default:

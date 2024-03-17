@@ -36,6 +36,8 @@ func (p *Processor) processFile(ctx context.Context, filename string) (string, e
 		return "", fmt.Errorf("post-process: %w", err)
 	}
 
+	log.Infof("post-process done")
+
 	err = os.Remove(filename)
 	if err != nil {
 		return "", fmt.Errorf("remove source %v failed: %w", filename, err)
@@ -50,8 +52,6 @@ func (p *Processor) Run(ctx context.Context, newFiles <-chan string) error {
 		case <-ctx.Done():
 			return nil
 		case filename := <-newFiles:
-			p.log.WithField("filename", filename).Info("start process")
-
 			processedFile, err := p.processFile(ctx, filename)
 			if err != nil {
 				p.log.WithField("filename", filename).Warnf("process failed: %v", err)

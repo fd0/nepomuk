@@ -92,7 +92,7 @@ func runWebDAVServer(ctx context.Context, wg *errgroup.Group, logger *logrus.Log
 	log.Debugf("start on %v", addr)
 
 	var logRequest func(*http.Request, error)
-	if log.Level >= logrus.DebugLevel {
+	if logger.Level >= logrus.DebugLevel {
 		logRequest = func(req *http.Request, err error) {
 			log.Printf("%v %v -> %v", req.Method, req.URL.Path, err)
 		}

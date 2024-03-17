@@ -225,5 +225,5 @@ func (fs *UploadOnlyFS) Stat(_ context.Context, name string) (os.FileInfo, error
 		return &fakeDir{name: "."}, nil
 	}
 
-	return nil, errors.New("not found")
+	return nil, os.ErrNotExist
 }
