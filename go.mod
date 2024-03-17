@@ -1,6 +1,6 @@
 module github.com/fd0/nepomuk
 
-go 1.18
+go 1.22.1
 
 require (
 	github.com/gregdel/pushover v1.3.0
