@@ -51,30 +51,6 @@ const uploadFilenameTimeFormat = "20060102-150405"
 
 var log *logrus.Logger
 
-// setupRootContext creates a root context that is cancelled when SIGINT is
-// received, tied to a new errgroup.Group. The returned cancel() function
-// cancels the outermost context.
-func setupRootContext() (wg *errgroup.Group, ctx context.Context, cancel func()) {
-	// create new root context, cancel on SIGINT
-	ctx, cancel = context.WithCancel(context.Background())
-
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-
-	go func() {
-		select {
-		case <-ch:
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-
-	// couple this context with an errgroup
-	wg, ctx = errgroup.WithContext(ctx)
-
-	return wg, ctx, cancel
-}
-
 const defaultChannelBufferSize = 500
 
 type Options struct {
@@ -108,6 +84,76 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func runWebDAVServer(ctx context.Context, wg *errgroup.Group, logger *logrus.Logger, addr, incomingDir string) {
+	log := logger.WithField("component", "webdav-server")
+
+	log.Debugf("start on %v", addr)
+
+	var logRequest func(*http.Request, error)
+	if log.Level >= logrus.DebugLevel {
+		logRequest = func(req *http.Request, err error) {
+			log.Printf("%v %v -> %v", req.Method, req.URL.Path, err)
+		}
+	}
+
+	handler := &webdav.Handler{
+		FileSystem: &ingest.UploadOnlyFS{
+			Log: log,
+			Create: func(name string) (io.WriteCloser, error) {
+				filename := time.Now().Format(uploadFilenameTimeFormat) + ".pdf"
+
+				f, err := os.OpenFile(filepath.Join(incomingDir, filename), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+				if err != nil {
+					log.Debugf("create new file failed: %v", err)
+
+					return nil, fmt.Errorf("create file: %w", err)
+				}
+
+				log.Infof("upload file %v as %v", name, filename)
+
+				return f, nil
+			},
+		},
+		LockSystem: webdav.NewMemLS(),
+		Logger:     logRequest,
+	}
+
+	server := http.Server{
+		Addr:    addr,
+		Handler: handler,
+	}
+
+	// ensure cancelling the context stops the server
+	wg.Go(func() error {
+		<-ctx.Done()
+		log.Debugf("shutdown webdav server")
+
+		// pass a cancelled context to Shutdown so it terminates directly
+		ctx, cancel := context.WithCancel(ctx)
+		cancel()
+
+		err := server.Shutdown(ctx)
+		if err != nil {
+			return fmt.Errorf("shutdown webdav server: %w", err)
+		}
+
+		return nil
+	})
+
+	wg.Go(func() error {
+		err := server.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			err = nil
+		}
+
+		if err != nil {
+			return fmt.Errorf("listen webdav: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func run(opts Options) error {
@@ -164,77 +210,16 @@ func run(opts Options) error {
 		log.Warnf("db scan returned error: %v", err)
 	}
 
-	wg, ctx, cancel := setupRootContext()
+	// create new root context, cancel on SIGINT
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	// couple this context with an errgroup
+	wg, ctx := errgroup.WithContext(ctx)
 
 	newFiles := make(chan string, defaultChannelBufferSize)
 
-	wg.Go(func() error {
-		log := log.WithField("component", "webdav-server")
-
-		log.Debugf("start on %v", opts.ListenWebDAV)
-
-		var logRequest func(*http.Request, error)
-		if log.Level >= logrus.DebugLevel {
-			logRequest = func(req *http.Request, err error) {
-				log.Printf("%v %v -> %v", req.Method, req.URL.Path, err)
-			}
-		}
-
-		handler := &webdav.Handler{
-			FileSystem: &ingest.UploadOnlyFS{
-				Log: log,
-				Create: func(name string) (io.WriteCloser, error) {
-					filename := time.Now().Format(uploadFilenameTimeFormat) + ".pdf"
-
-					f, err := os.OpenFile(filepath.Join(incomingDir, filename), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
-					if err != nil {
-						log.Debugf("create new file failed: %v", err)
-
-						return nil, fmt.Errorf("create file: %w", err)
-					}
-
-					log.Infof("upload file %v as %v", name, filename)
-
-					return f, nil
-				},
-			},
-			LockSystem: webdav.NewMemLS(),
-			Logger:     logRequest,
-		}
-
-		server := http.Server{
-			Addr:    opts.ListenWebDAV,
-			Handler: handler,
-		}
-
-		// ensure cancelling the context stops the server
-		wg.Go(func() error {
-			<-ctx.Done()
-			log.Debugf("shutdown webdav server")
-
-			// pass a cancelled context to Shutdown so it terminates directly
-			ctx, cancel := context.WithCancel(ctx)
-			cancel()
-
-			err := server.Shutdown(ctx)
-			if err != nil {
-				return fmt.Errorf("shutdown webdav server: %w", err)
-			}
-
-			return nil
-		})
-
-		err := server.ListenAndServe()
-		if errors.Is(err, http.ErrServerClosed) {
-			err = nil
-		}
-
-		if err != nil {
-			return fmt.Errorf("listen webdav: %w", err)
-		}
-
-		return nil
-	})
+	runWebDAVServer(ctx, wg, log, opts.ListenWebDAV, incomingDir)
 
 	// watch for new files in incoming/
 	wg.Go(func() error {
