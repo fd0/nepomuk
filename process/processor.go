@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -29,26 +28,6 @@ func (p *Processor) SetLogger(logger logrus.FieldLogger) {
 // is returned.
 func (p *Processor) processFile(ctx context.Context, filename string) (string, error) {
 	log := p.log.WithField("filename", filename)
-
-	// ignore first files of duplex documents (with the odd pages)
-	if strings.HasSuffix(filename, "_duplex-odd.pdf") {
-		log.Info("ignore file with odd pages")
-
-		return "", nil
-	}
-
-	// try to join duplex pages when the second file (with the even pages) is uploaded
-	if strings.HasSuffix(filename, "_duplex-even.pdf") {
-		sourcefile, err := TryJoinPages(log, filename)
-		if err != nil {
-			return "", fmt.Errorf("de-duplexing failed: %w", err)
-		}
-
-		log.Infof("joined file is at %v", sourcefile)
-
-		// process the joined file name
-		return p.processFile(ctx, sourcefile)
-	}
 
 	log.Infof("start post-process")
 

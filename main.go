@@ -162,10 +162,9 @@ func run(opts Options) error {
 	}
 
 	incomingDir := filepath.Join(opts.BaseDir, "incoming")
-	uploadedDir := filepath.Join(opts.BaseDir, ".nepomuk/uploaded")
 	processedDir := filepath.Join(opts.BaseDir, ".nepomuk/processed")
 
-	for _, dir := range []string{incomingDir, uploadedDir, processedDir, opts.BaseDir} {
+	for _, dir := range []string{incomingDir, processedDir, opts.BaseDir} {
 		err = CheckTargetDir(dir)
 		if err != nil {
 			return err

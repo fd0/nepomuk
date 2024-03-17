@@ -7,7 +7,6 @@ created and the PDF files for that correspondent are saved in the sub directory.
 Within the subdir `.nepomuk`, additional files and directories are stored:
 
  * `incoming/` place new files here manually
- * `uploaded/` contains files uploaded via the FTP server
  * `processed/` holds files optimized and OCRed before sorting
  * `db.json` contains data about the individual files
  * `config.yml` defines the matchers for the correspondents
