@@ -46,6 +46,8 @@ func CheckTargetDir(dir string) error {
 	return nil
 }
 
+const uploadFilenameTimeFormat = "20060102-150405"
+
 var log *logrus.Logger
 
 // setupRootContext creates a root context that is cancelled when SIGINT is
@@ -94,7 +96,6 @@ func main() {
 	fs := pflag.NewFlagSet("nepomuk", pflag.ContinueOnError)
 	fs.StringVar(&opts.Config, "config", defaultConfigPath, "load config from `config.yml`, path may be relative to base directory")
 	fs.StringVar(&opts.BaseDir, "base-dir", "archive", "archive base `directory`")
-	fs.StringVar(&opts.ListenFTP, "listen-ftp", ":2121", "run FTP server on `addr:port`")
 	fs.StringVar(&opts.ListenWebDAV, "listen-webdav", ":8080", "run WebDAV-Server on `addr:port`")
 	fs.StringVar(&opts.LogLevel, "log-level", "debug", "set log level")
 	fs.BoolVar(&opts.Verbose, "verbose", false, "print verbose messages")
@@ -198,23 +199,6 @@ func run(opts Options) error {
 
 	newFiles := make(chan string, defaultChannelBufferSize)
 
-	// receive files via FTP
-	ingest.SetLogger(log)
-
-	wg.Go(func() error {
-		srv := &ingest.FTPServer{
-			TargetDir: uploadedDir,
-			Verbose:   opts.Verbose,
-			Bind:      opts.ListenFTP,
-			OnFileUpload: func(filename string) {
-				log.Printf("ftp: new file uploaded: %v", filepath.Base(filename))
-				newFiles <- filename
-			},
-		}
-
-		return srv.Run(ctx)
-	})
-
 	wg.Go(func() error {
 		log := log.WithField("component", "webdav-server")
 
@@ -231,7 +215,7 @@ func run(opts Options) error {
 			FileSystem: &ingest.UploadOnlyFS{
 				Log: log,
 				Create: func(name string) (io.WriteCloser, error) {
-					filename := time.Now().Format(ingest.UploadFilenameTimeFormat) + ".pdf"
+					filename := time.Now().Format(uploadFilenameTimeFormat) + ".pdf"
 
 					f, err := os.OpenFile(filepath.Join(incomingDir, filename), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 					if err != nil {
