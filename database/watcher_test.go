@@ -51,15 +51,13 @@ func TestFileRename(t *testing.T) {
 
 	wg, ctx := errgroup.WithContext(ctx)
 
-	found := make(chan RenameOp)
+	found := make(chan string)
 	ready := make(chan struct{})
 	w := Watcher{
 		log:        logrus.StandardLogger(),
 		ArchiveDir: tempdir,
 		OnFileRenamed: func(newname string) {
-			found <- RenameOp{
-				New: newname,
-			}
+			found <- newname
 		},
 		OnStartWatching: func() {
 			close(ready)
@@ -87,18 +85,15 @@ func TestFileRename(t *testing.T) {
 		rename(t, oldFilename, newFilename)
 
 		select {
-		case ev := <-found:
-			t.Logf("got event %v -> %v", op.Old, op.New)
+		case filename := <-found:
+			t.Logf("got event for %v -> %v, filename %v", op.Old, op.New, filename)
 
-			if ev.Old != oldFilename {
-				t.Errorf("wrong old filename, want %v, got %v", oldFilename, ev.Old)
+			if filepath.Base(filename) != op.New {
+				t.Errorf("wrong filename found, want %v, got %v", op.New, filepath.Base(filename))
 			}
 
-			if ev.New != newFilename {
-				t.Errorf("wrong new filename, want %v, got %v", newFilename, ev.New)
-			}
 		case <-time.After(time.Second):
-			t.Fatalf("timeout waiting for rename event %v -> %v", oldFilename, newFilename)
+			t.Fatalf("timeout waiting for rename event %v -> %v", op.Old, op.New)
 		}
 	}
 
