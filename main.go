@@ -14,6 +14,7 @@ import (
 	"github.com/fd0/nepomuk/database"
 	"github.com/fd0/nepomuk/extract"
 	"github.com/fd0/nepomuk/ingest"
+	"github.com/fd0/nepomuk/notify"
 	"github.com/fd0/nepomuk/process"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -181,7 +182,7 @@ func run(opts Options) error {
 
 	db.SetLogger(log)
 
-	db.OnChange = func(id string, oldAnnotation, newAnnotation database.File) {
+	db.OnChange = func(id string, _, _ database.File) {
 		log.Infof("database: data for file %v changed, saving database", id)
 
 		err := db.Save(filepath.Join(opts.BaseDir, ".nepomuk/db.json"))
@@ -304,7 +305,7 @@ func run(opts Options) error {
 			ProcessedDir:   processedDir,
 			Correspondents: cfg.Correspondents,
 			OnNewFile: func(file database.File) {
-				//notify.Notify(log, file)
+				notify.Notify(log, file)
 			},
 		}
 
