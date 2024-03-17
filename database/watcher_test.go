@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +12,7 @@ import (
 )
 
 func write(t testing.TB, filename, data string) {
-	err := ioutil.WriteFile(filename, []byte(data), 0600)
+	err := os.WriteFile(filename, []byte(data), 0600)
 	if err != nil {
 		t.Fatalf("write %v failed: %v", filename, err)
 	}

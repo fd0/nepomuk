@@ -3,7 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/rjeczalik/notify"
@@ -29,7 +29,7 @@ func (w *Watcher) SetLogger(logger logrus.FieldLogger) {
 // Run starts the watcher, it terminates when ctx is cancelled.
 func (w *Watcher) Run(ctx context.Context) error {
 	// process all pre-existing files
-	entries, err := ioutil.ReadDir(w.Dir)
+	entries, err := os.ReadDir(w.Dir)
 	if err != nil {
 		return fmt.Errorf("readdir %v: %w", w.Dir, err)
 	}

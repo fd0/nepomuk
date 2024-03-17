@@ -1,18 +1,5 @@
 ---
-# enable all linters except the following
 linters:
-  enable-all: true
-  disable:
-    - goerr113
-    - testpackage
-    - exhaustivestruct
-    - gochecknoglobals
-    - paralleltest
-    - ifshort
-    - gomnd
-    - thelper
-    - exhaustruct
-
   # disable-all: false
   # presets:
   #   - bugs
@@ -21,25 +8,19 @@ linters:
 
 linters-settings:
 
-  # make function length a bit less strict
-  funlen:
-    lines: 150
-    statements: 80
+  # # make function length a bit less strict
+  # funlen:
+  #   lines: 150
+  #   statements: 80
 
-  # don't report simplifications
-  gofmt:
-    simplify: false
+  # # don't report simplifications
+  # gofmt:
+  #   simplify: false
 
-  # tolerate up to 130 chars per line
-  lll:
-    line-length: 130
+  # # tolerate up to 130 chars per line
+  # lll:
+  #   line-length: 130
 
-  exhaustive:
-    # indicates that switch statements are to be considered exhaustive if a
-    # 'default' case is present, even if all enum members aren't listed in the
-    # switch
-    default-signifies-exhaustive: true
-
-  cyclop:
-    # the maximal code complexity to report
-    max-complexity: 20
+  # cyclop:
+  #   # the maximal code complexity to report
+  #   max-complexity: 20

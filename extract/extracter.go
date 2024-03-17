@@ -3,7 +3,6 @@ package extract
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -134,7 +133,7 @@ func (s *Extracter) processFile(filename string) error {
 
 func (s *Extracter) Run(ctx context.Context, inFiles <-chan string) error {
 	// process all pre-existing files
-	entries, err := ioutil.ReadDir(s.ProcessedDir)
+	entries, err := os.ReadDir(s.ProcessedDir)
 	if err != nil {
 		return fmt.Errorf("readdir %v: %w", s.ProcessedDir, err)
 	}

@@ -1,14 +1,13 @@
 package process
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TempDir(t testing.TB) (dir string, cleanup func()) {
-	dir, err := ioutil.TempDir("", "go-test-")
+	dir, err := os.MkdirTemp("", "go-test-")
 	if err != nil {
 		t.Fatalf("create tempdir: %v", err)
 	}
@@ -120,11 +119,10 @@ func TestFindLastFilename(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
 
-			tempdir, cleanup := TempDir(t)
-			t.Cleanup(cleanup)
+			tempdir := t.TempDir()
 
 			for _, filename := range test.filenames {
-				err := ioutil.WriteFile(filepath.Join(tempdir, filename), []byte(filename), 0600)
+				err := os.WriteFile(filepath.Join(tempdir, filename), []byte(filename), 0600)
 				if err != nil {
 					t.Fatalf("writing %v: %v", filename, err)
 				}

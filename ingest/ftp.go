@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -159,7 +158,7 @@ func (srv *FTPServer) Run(ctx context.Context) error {
 	log.Debugf("start server on %v", srv.Bind)
 
 	// process all pre-existing files
-	entries, err := ioutil.ReadDir(srv.TargetDir)
+	entries, err := os.ReadDir(srv.TargetDir)
 	if err != nil {
 		return fmt.Errorf("readdir %v: %w", srv.TargetDir, err)
 	}

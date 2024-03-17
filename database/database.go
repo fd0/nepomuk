@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -145,7 +144,7 @@ func (db *Database) Scan() error {
 	db.log.Infof("synchronize database and files in %v", db.Dir)
 
 	// first, insert or update all files found in the dir
-	dirs, err := ioutil.ReadDir(db.Dir)
+	dirs, err := os.ReadDir(db.Dir)
 	if err != nil {
 		return fmt.Errorf("readdir %v failed: %w", db.Dir, err)
 	}
@@ -185,13 +184,13 @@ func (db *Database) Scan() error {
 }
 
 func (db *Database) scanSubdir(subdir string) error {
-	files, err := ioutil.ReadDir(subdir)
+	files, err := os.ReadDir(subdir)
 	if err != nil {
 		return fmt.Errorf("readdri %v failed: %w", subdir, err)
 	}
 
 	for _, fi := range files {
-		if !fi.Mode().IsRegular() {
+		if !fi.Type().IsRegular() {
 			continue
 		}
 
@@ -274,7 +273,7 @@ func (db *Database) OnRename(newName string) error {
 
 	if fi.IsDir() {
 		// read the dir and trigger rename for all files
-		entries, err := ioutil.ReadDir(newName)
+		entries, err := os.ReadDir(newName)
 		if err != nil {
 			return fmt.Errorf("readdir failed: %w", err)
 		}

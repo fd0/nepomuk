@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/fd0/nepomuk/extract"
 	"gopkg.in/yaml.v2"
@@ -13,7 +13,7 @@ type Config struct {
 }
 
 func LoadConfig(filename string) (Config, error) {
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := os.ReadFile(filename)
 	if err != nil {
 		return Config{}, fmt.Errorf("read config failed: %w", err)
 	}

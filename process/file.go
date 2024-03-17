@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,7 +99,7 @@ func (f Files) Swap(i, j int) {
 func JoinPages(dir, odd, even string) (filename string, err error) {
 	var tempdir string
 
-	tempdir, err = ioutil.TempDir("", "join-duplex-")
+	tempdir, err = os.MkdirTemp("", "join-duplex-")
 	if err != nil {
 		return "", fmt.Errorf("tempdir: %w", err)
 	}
