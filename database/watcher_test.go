@@ -57,9 +57,8 @@ func TestFileRename(t *testing.T) {
 	w := Watcher{
 		log:        logrus.StandardLogger(),
 		ArchiveDir: tempdir,
-		OnFileMoved: func(oldname, newname string) {
+		OnFileRenamed: func(newname string) {
 			found <- RenameOp{
-				Old: oldname,
 				New: newname,
 			}
 		},

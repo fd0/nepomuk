@@ -158,7 +158,7 @@ func JoinPages(dir, odd, even string) (filename string, err error) {
 
 	targetfile := filepath.Join(dir, strings.Split(even, "_")[0]+".pdf")
 
-	err = pdfcpu.MergeCreateFile(files, targetfile, nil)
+	err = pdfcpu.MergeCreateFile(files, targetfile, false, nil)
 	if err != nil {
 		return "", fmt.Errorf("merge file: %w", err)
 	}
@@ -227,7 +227,8 @@ func PostProcess(ctx context.Context, log logrus.FieldLogger, targetDir, filenam
 
 	cmd := exec.CommandContext(ctx,
 		"ocrmypdf",
-		"--quiet", "--deskew", "--clean", "--clean-final",
+		// "--quiet",
+		"--deskew", "--clean", "--clean-final",
 		"--language", "deu", // use Germany by default
 		"--skip-text", // skip OCR for pages which already have text
 		// "--remove-backgound", // try to make files smaller by removing the background
@@ -235,6 +236,16 @@ func PostProcess(ctx context.Context, log logrus.FieldLogger, targetDir, filenam
 	cmd.Stderr = stderr
 
 	err = cmd.Run()
+
+	var exiterr *exec.ExitError
+	if errors.As(err, &exiterr) {
+		if exiterr.ExitCode() == 10 {
+			// docs say: A valid PDF was created, PDF/A conversion failed. The file will be available.
+			// we just ignore this error
+			err = nil
+		}
+	}
+
 	if err != nil {
 		return "", fmt.Errorf("run ocrmypdf: %w, stderr: %v", err, stderr.String())
 	}

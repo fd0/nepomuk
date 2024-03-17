@@ -54,7 +54,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 	ch := make(chan notify.EventInfo, defaultInotifyChanBuf)
 
 	// watch for events fired after creating files
-	err = notify.Watch(w.Dir, ch, notify.InCloseWrite, notify.InMovedTo)
+	err = watchDir(w.Dir, ch)
 	if err != nil {
 		return fmt.Errorf("inotify watch failed: %w", err)
 	}
@@ -70,6 +70,8 @@ outer:
 			if !ok {
 				return nil
 			}
+
+			w.log.Debugf("new file: %v, %#v", ev.Path(), ev)
 
 			w.OnNewFile(ev.Path())
 		}

@@ -100,7 +100,8 @@ func (s *Extracter) processFile(filename string) error {
 			return fmt.Errorf("unable to create dir for target file %v: %w", newLocation, err)
 		}
 
-		err = unix.Renameat2(unix.AT_FDCWD, filename, unix.AT_FDCWD, newLocation, unix.RENAME_NOREPLACE)
+		// err = unix.Renameat2(unix.AT_FDCWD, filename, unix.AT_FDCWD, newLocation, unix.RENAME_NOREPLACE)
+		err = unix.Renameat(unix.AT_FDCWD, filename, unix.AT_FDCWD, newLocation)
 		if os.IsExist(err) {
 			log.Warnf("destination file already exists, retrying with new filename")
 

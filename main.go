@@ -14,7 +14,6 @@ import (
 	"github.com/fd0/nepomuk/database"
 	"github.com/fd0/nepomuk/extract"
 	"github.com/fd0/nepomuk/ingest"
-	"github.com/fd0/nepomuk/notify"
 	"github.com/fd0/nepomuk/process"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -321,7 +320,7 @@ func run(opts Options) error {
 			ProcessedDir:   processedDir,
 			Correspondents: cfg.Correspondents,
 			OnNewFile: func(file database.File) {
-				notify.Notify(log, file)
+				//notify.Notify(log, file)
 			},
 		}
 
@@ -334,7 +333,7 @@ func run(opts Options) error {
 	wg.Go(func() error {
 		watcher := database.Watcher{
 			ArchiveDir: opts.BaseDir,
-			OnFileMoved: func(oldName, newName string) {
+			OnFileRenamed: func(newName string) {
 				err := db.OnRename(newName)
 				if err != nil {
 					log.WithField("filename", newName).Warnf("rename failed: %v", err)
