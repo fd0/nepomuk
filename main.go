@@ -140,16 +140,30 @@ func runWebDAVServer(ctx context.Context, wg *errgroup.Group, logger *logrus.Log
 					return nil
 				}
 
+				// ignore files with . or _ as first characters
+				if filename != "" && (filename[0] == '.' || filename[0] == '_') {
+					log.Tracef("ignore file with special filename %v", filename)
+
+					return nil
+				}
+
 				fi, err := d.Info()
 				if err != nil {
-					log.Debugf("get FileInfo for %v: %v", filename, err)
+					log.Warnf("get FileInfo for %v: %v", filename, err)
+
+					return nil
+				}
+
+				// ignore very small files
+				if fi.Size() < 1000 {
+					log.Tracef("ignore small file %v (%d bytes)", filename, fi.Size())
 
 					return nil
 				}
 
 				// ignore very new files
 				if time.Since(fi.ModTime()) < 200*time.Millisecond {
-					log.Debugf("ignore %v, too new", filename)
+					log.Tracef("ignore %v, too new", filename)
 
 					return nil
 				}
@@ -168,7 +182,7 @@ func runWebDAVServer(ctx context.Context, wg *errgroup.Group, logger *logrus.Log
 					return nil
 				}
 
-				log.Debugf("got lock, token %v", token)
+				log.Tracef("got lock, token %v", token)
 				defer func() {
 					err := locksystem.Unlock(time.Now(), token)
 					if err != nil {
@@ -191,7 +205,6 @@ func runWebDAVServer(ctx context.Context, wg *errgroup.Group, logger *logrus.Log
 				name := time.Now().Format(uploadFilenameTimeFormat)
 				// replace the dot used for specifying millisecond precision
 				name = strings.ReplaceAll(name, ".", "_")
-
 				name += path.Ext(filename)
 
 				err = os.WriteFile(filepath.Join(incomingDir, name), buf, 0600)
