@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fd0/nepomuk/database"
@@ -47,8 +49,6 @@ func CheckTargetDir(dir string) error {
 	return nil
 }
 
-const uploadFilenameTimeFormat = "20060102-150405"
-
 var log *logrus.Logger
 
 const defaultChannelBufferSize = 500
@@ -86,6 +86,9 @@ func main() {
 	}
 }
 
+// we need to use the dot to specify millisecond precision, it will be replaced later
+const uploadFilenameTimeFormat = "20060102-150405.000000"
+
 func runWebDAVServer(ctx context.Context, wg *errgroup.Group, logger *logrus.Logger, addr, incomingDir string) {
 	log := logger.WithField("component", "webdav-server")
 
@@ -98,25 +101,13 @@ func runWebDAVServer(ctx context.Context, wg *errgroup.Group, logger *logrus.Log
 		}
 	}
 
+	// we use a MemFS to temporarily store files
+	filesystem := webdav.NewMemFS()
+	locksystem := webdav.NewMemLS()
+
 	handler := &webdav.Handler{
-		FileSystem: &ingest.UploadOnlyFS{
-			Log: log,
-			Create: func(name string) (io.WriteCloser, error) {
-				filename := time.Now().Format(uploadFilenameTimeFormat) + ".pdf"
-
-				f, err := os.OpenFile(filepath.Join(incomingDir, filename), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
-				if err != nil {
-					log.Debugf("create new file failed: %v", err)
-
-					return nil, fmt.Errorf("create file: %w", err)
-				}
-
-				log.Infof("upload file %v as %v", name, filename)
-
-				return f, nil
-			},
-		},
-		LockSystem: webdav.NewMemLS(),
+		FileSystem: filesystem,
+		LockSystem: locksystem,
 		Logger:     logRequest,
 	}
 
@@ -124,6 +115,100 @@ func runWebDAVServer(ctx context.Context, wg *errgroup.Group, logger *logrus.Log
 		Addr:    addr,
 		Handler: handler,
 	}
+
+	// watch the file system for new files and move them into incomingDir
+	wg.Go(func() error {
+		ticker := time.NewTicker(20 * time.Millisecond)
+
+		walkFS := newWebDAVFS(filesystem)
+
+	outer:
+		for {
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				break outer
+			}
+
+			err := fs.WalkDir(walkFS, "", func(filename string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+
+				// ignore dirs
+				if d.IsDir() {
+					return nil
+				}
+
+				fi, err := d.Info()
+				if err != nil {
+					log.Debugf("get FileInfo for %v: %v", filename, err)
+
+					return nil
+				}
+
+				// ignore very new files
+				if time.Since(fi.ModTime()) < 200*time.Millisecond {
+					log.Debugf("ignore %v, too new", filename)
+
+					return nil
+				}
+
+				// try to get lock, ignore locked files
+				token, err := locksystem.Create(time.Now(), webdav.LockDetails{
+					Root:      filename,
+					Duration:  -1,
+					OwnerXML:  "nepomuk",
+					ZeroDepth: true,
+				})
+
+				if err != nil {
+					log.Debugf("did not get lock for %v, skipping", filename)
+
+					return nil
+				}
+
+				log.Debugf("got lock, token %v", token)
+				defer func() {
+					err := locksystem.Unlock(time.Now(), token)
+					if err != nil {
+						log.Debugf("unlock return error: %v", err)
+					}
+				}()
+
+				buf, err := fs.ReadFile(walkFS, filename)
+				if err != nil {
+					return fmt.Errorf("readfile: %w", err)
+				}
+
+				log.Debugf("found new file %v, %d bytes\n", filename, len(buf))
+
+				err = walkFS.RemoveAll(filename)
+				if err != nil {
+					return fmt.Errorf("remove %v: %w", filename, err)
+				}
+
+				name := time.Now().Format(uploadFilenameTimeFormat)
+				// replace the dot used for specifying millisecond precision
+				name = strings.ReplaceAll(name, ".", "_")
+
+				name += path.Ext(filename)
+
+				err = os.WriteFile(filepath.Join(incomingDir, name), buf, 0600)
+				if err != nil {
+					return fmt.Errorf("write to incoming dir: %w", err)
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				return fmt.Errorf("walk() FS: %w", err)
+			}
+		}
+
+		return nil
+	})
 
 	// ensure cancelling the context stops the server
 	wg.Go(func() error {
@@ -236,7 +321,7 @@ func run(opts Options) error {
 
 	processedFiles := make(chan string, defaultChannelBufferSize)
 
-	// process files received via FTP or incoming/
+	// process files received via incoming/
 	wg.Go(func() error {
 		processor := &process.Processor{
 			ProcessedDir: processedDir,
